@@ -1,0 +1,148 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+html {
+  --size: 24px;
+  --size2: 16px;
+}
+@media (-moz-touch-enabled: 1), (pointer:coarse) {
+  html {
+    --size: 36px;
+    --size2: 18px;
+  }
+}
+html, body, section {
+  padding: 0;
+  margin: 0;
+}
+@media (-moz-touch-enabled: 0), (pointer:fine) {
+  html > body > section {
+    padding: 2px;
+    margin-bottom: 2px;
+  }
+}
+html, body {
+  overflow-x: hidden;
+}
+section>* {
+  display:inline-block;
+}
+section {
+  position: relative;
+  transition: transform 0.05s linear;
+}
+.list, ol {
+  list-style: none none;
+  padding: 0;
+  margin: 0;
+}
+button {
+  display: inline-block;
+  padding: 0;
+  background: linear-gradient(to bottom, #e7e7e6, #d0d0ce);
+  border-radius: 4px;
+  text-decoration: none;
+  border: 1px solid #b6b6b3;
+  border-bottom-color: #91918c;
+  font-size: inherit;
+}
+button:hover {
+  background-image: linear-gradient(to bottom, #f6f6f5, #dededd);
+}
+input[type="checkbox"] + label {
+  width: 100%;
+}
+.list>h1 {
+  font-style: italic;
+  font-weight: normal;
+  background-color: #ddd;
+  margin: 0;
+  padding: 0.1em 2.5em 0.1em calc(var(--size) + 0.2em);
+}
+h1, p, li {
+  font-size: var(--size2);
+  line-height: var(--size);
+  white-space: nowrap;
+}
+li {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size);
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 100%;
+}
+html li:nth-child(odd) {
+  background-color: #eee;
+}
+li > * {
+  flex: 1 1 auto;
+}
+li > :not(button) {
+  padding: 4px 2px;
+}
+li > img {
+  flex: 0 0 auto;
+  width: var(--size);
+}
+li:hover, li.selected {
+  color: #fff;
+  border-radius: 4px;
+}
+li:hover, li:active {
+  background: linear-gradient(to bottom, #eee 0%, #ccc 24%, #aaa 50%, #ccc 79%, #eee 100%);
+}
+li.selected {
+  background: linear-gradient(to bottom, #d0e4f7 0%, #73b1e7 24%, #0a77d5 50%, #539fe1 79%, #87bcea 100%);
+}
+li button {
+  text-align: center;
+  min-width: 3.5em;
+  max-width: 3.5em;
+}
+@media (-moz-touch-enabled: 1), (pointer:coarse) {
+  li button {
+    margin-right: 2px;
+  }
+}
+.details {
+  position: absolute;
+  width: 100%;
+  left: 100%;
+}
+.details input[type="text"] {
+  display: block;
+  margin: 0.2em auto;
+  padding: 0;
+  width: 99%;
+}
+.details select {
+  margin-left: 0.5em;
+}
+.details button {
+  text-align: center;
+  display: inline-block;
+  white-space: nowrap;
+  margin: 1%;
+  width: 48%;
+}
+.details, .details>p {
+  text-align: center;
+}
+.details>p {
+  margin: 0;
+  padding: 0.2em 0.5em;
+}
+.details>* {
+  padding: 0.25em 0.5em;
+}
+

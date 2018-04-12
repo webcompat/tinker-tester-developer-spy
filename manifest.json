@@ -1,0 +1,40 @@
+{
+  "manifest_version": 2,
+  "name": "__MSG_addonName__",
+  "default_locale": "en_US",
+  "description": "__MSG_addonDescription__",
+  "version": "0.1",
+  "homepage_url": "http://www.mozilla.com/",
+  "applications": {
+    "gecko": {
+      "id": "@TinkerTesterDeveloperSpy",
+      "strict_min_version": "59.0a1"
+    }
+  },
+  "icons": {
+    "16": "icons/active.svg",
+    "32": "icons/active.svg",
+    "48": "icons/active.svg",
+    "96": "icons/active.svg",
+    "128": "icons/active.svg"
+  },
+  "permissions": [
+    "<all_urls>",
+    "tabs",
+    "webRequest",
+    "webRequestBlocking"
+  ],
+  "background": {
+    "scripts": [
+      "common.js",
+      "background_utils.js",
+      "background.js"
+    ]
+  },
+  "browser_action": {
+    "browser_style": true,
+    "default_icon": "icons/inactive.svg",
+    "default_title": "__MSG_addonName__",
+    "default_popup": "popup/popup.html"
+  }
+}

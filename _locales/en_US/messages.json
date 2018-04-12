@@ -1,0 +1,179 @@
+{
+  "addonDescription": {
+    "message": "Handy diagnosis tools for figuring out how web sites work"
+  },
+  "addonName": {
+    "message": "Tinker Tester Developer Spy"
+  },
+
+  "callbackOnCreated": {
+    "message": "On Created"
+  },
+  "callbackOnEventFired": {
+    "message": "On Event Fired"
+  },
+  "callbackOnGet": {
+    "message": "On Get"
+  },
+  "callbackOnListenerAdded": {
+    "message": "On Listener Added"
+  },
+  "callbackOnListenerRemoved": {
+    "message": "On Listener Removed"
+  },
+  "callbackOnSend": {
+    "message": "On Send"
+  },
+  "callbackOnSet": {
+    "message": "On Set"
+  },
+
+  "hookLabelCORSBypass": {
+    "message": "Bypass Site CORS settings"
+  },
+  "hookLabelDetectUAChecks": {
+    "message": "Detect UA sniffing"
+  },
+  "hookLabelDocumentWrite": {
+    "message": "document.write"
+  },
+  "hookLabelFunctionBindLogging": {
+    "message": "function.bind logging"
+  },
+  "hookLabelInputsLinks": {
+    "message": "Inputs and Links"
+  },
+  "hookLabelListenForElementCreation": {
+    "message": "Element created"
+  },
+  "hookLabelListenForEvents": {
+    "message": "DOM events"
+  },
+  "hookLabelListenForStyleProperties": {
+    "message": "element.style"
+  },
+  "hookLabelMediaElements": {
+    "message": "Audio/Video"
+  },
+  "hookLabelObserveXHRandFetch": {
+    "message": "XHR and Fetches"
+  },
+  "hookLabelScrolling": {
+    "message": "Scrolling"
+  },
+  "hookLabelShadowDOM": {
+    "message": "Shadow DOM"
+  },
+  "hookLabelTimeoutsRAF": {
+    "message": "Timeouts and RAF"
+  },
+  "hookLabelUserAgentOverrides": {
+    "message": "Spoof User Agent"
+  },
+
+  "logBoundFunctionCalled": {
+    "message": "bound function called"
+  },
+  "logCalledWithArgs": {
+    "message": "called with args"
+  },
+  "logElementCreated": {
+    "message": "element created"
+  },
+  "logEventFiredOn": {
+    "message": "fired on"
+  },
+  "logGetterAccessed": {
+    "message": "accessed"
+  },
+  "logIgnoringCall": {
+    "message": "ignoring call"
+  },
+  "logInvalidFunctionBind": {
+   "message": "Function.prototype.bind requires a callable object"
+  },
+  "logListenerAddedOn": {
+    "message": "listener added on"
+  },
+  "logListenerRemovedFrom": {
+    "message": "listener removed from"
+  },
+  "logSetterCalled": {
+    "message": "set to"
+  },
+
+  "optionElementNames": {
+    "message": "Element names"
+  },
+  "optionEventTypes": {
+    "message": "Event types"
+  },
+  "optionOnlyHTTPMethods": {
+    "message": "Only for these HTTP methods"
+  },
+  "optionOnlyIfElementMatches": {
+    "message": "Only if element matches"
+  },
+  "optionOnlyIfValueMatches": {
+    "message": "Only if value matches"
+  },
+  "optionOnlyIfTargetMatches": {
+    "message": "Only if target matches"
+  },
+  "optionOnlyURLs": {
+    "message": "Only if URL matches regex"
+  },
+  "optionStylePropertiesToMonitor": {
+    "message": "Style properties to monitor"
+  },
+
+  "popupApplyHook": {
+    "message": "Apply"
+  },
+  "popupAvailableHooks": {
+    "message": "Available Hooks"
+  },
+  "popupCancel": {
+    "message": "Cancel"
+  },
+  "popupDisableHook": {
+    "message": "Disable"
+  },
+  "popupDoNothing": {
+    "message": "Do nothing"
+  },
+  "popupIgnore": {
+    "message": "Ignore"
+  },
+  "popupLogStackTrace": {
+    "message": "Log stack trace"
+  },
+  "popupStartDebugger": {
+    "message": "Start debugger"
+  },
+  "popupUnavailableForAboutPages": {
+    "message": "Unavailable for about: pages"
+  },
+  "popupUnsetHook": {
+    "message": "unset"
+  },
+  "popupUpdateHook": {
+    "message": "Update"
+  },
+
+  "uaChromeAndroidTablet": {
+    "message": "Chrome 61 (Android Tablet)"
+  },
+  "uaChromeLinux": {
+    "message": "Chrome 61 (Linux)"
+  },
+  "uaFirefoxAndroidPhone": {
+    "message": "Firefox 57 (Android Phone)"
+  },
+  "uaFirefoxAndroidTablet": {
+    "message": "Firefox 57 (Android Tablet)"
+  },
+  "uaSafariOSX": {
+    "message": "Safari 10.12.6 (OSX)"
+  }
+}
