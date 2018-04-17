@@ -145,4 +145,8 @@ li button {
 .details>* {
   padding: 0.25em 0.5em;
 }
-
+.details>blockquote {
+  color: red;
+  font-weight: bold;
+  font-style: italic;
+}

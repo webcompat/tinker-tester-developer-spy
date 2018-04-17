@@ -12,6 +12,17 @@ var ScriptOverrideHooks = {
               onlyURLs: browser.i18n.getMessage("optionOnlyURLs")},
     callbacks: {onSend: browser.i18n.getMessage("callbackOnSend")},
   },
+  "OverrideNetworkRequests": {
+    userValues: {
+      setting: browser.i18n.getMessage("optionURLRegex"),
+      value: browser.i18n.getMessage("optionURLRedirect"),
+      types: {
+        redirectURL: {label: "Redirect URL", type: "url"},
+        rawText: {label: "Raw Text", type: "text"},
+      },
+    },
+    note: browser.i18n.getMessage("noteOverrideNetworkRequests"),
+  },
   "ListenForElementCreation": {
     options: {names: browser.i18n.getMessage("optionElementNames")},
     callbacks: {onCreated: browser.i18n.getMessage("callbackOnCreated")},

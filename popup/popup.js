@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* global applyChanges, browser, drillDownIntoDetails, goBackToList,
+/* global browser, drillDownIntoDetails, goBackToList,
           redraw, ScriptOverrideHooks, IsAndroid */
 
 const Messages = {
@@ -82,7 +82,27 @@ function handleClick(e) {
       let info = changes[name] = {};
       if (action === "apply") {
         info.enabled = true;
-        for (let input of document.querySelectorAll(".details input")) {
+        let uservals = document.querySelectorAll(".details .uservalue");
+        if (uservals.length) {
+          info.userValues = [];
+          for (let userval of uservals) {
+            let inputs = userval.querySelectorAll("input");
+            let setting = inputs[0].value;
+            let value = inputs[1].value;
+            let type = (userval.querySelector("select") || {}).value;
+            if (setting && value) {
+              let val = {setting, value};
+              if (type !== undefined) {
+                val.type = type;
+              }
+              info.userValues.push(val);
+            }
+          }
+          if (!info.userValues.length) {
+            info = {enabled: false};
+          }
+        }
+        for (let input of document.querySelectorAll(".details input[data-pref]")) {
           info[input.getAttribute("data-pref")] = input.value;
         }
         for (let sel of document.querySelectorAll(".details select")) {
@@ -261,6 +281,75 @@ function addSelectActionCell(name, tr, initialValue, addIgnoreOption = false) {
   return sel;
 }
 
+function syncUserValueSelectorType(userval, definition) {
+  if (definition.types) {
+    let inp = userval.querySelectorAll("input")[1];
+    inp.type = definition.types[userval.querySelector("select").value].type;
+  }
+}
+
+function addUserValueSelector(table, definition, instanceOpts = {}) {
+  let tr = document.createElement("tr");
+  tr.classList.add("uservalue");
+  table.appendChild(tr);
+  tr.addEventListener("change", e => {
+    let userval = e.target.closest(".uservalue");
+    if (!userval) {
+     return;
+    }
+    if (e.target.nodeName === "SELECT") {
+      syncUserValueSelectorType(userval, definition);
+    } else {
+      let isLastUserval = userval.matches(":last-child");
+      let emptyInputCount = userval.querySelectorAll("input:placeholder-shown").length;
+      if (isLastUserval && !emptyInputCount) {
+        setTimeout(() => {
+          addUserValueSelector(table, definition);
+        }, 100);
+      } else if (!isLastUserval && emptyInputCount == 2) {
+        userval.remove();
+      }
+    }
+  });
+
+  let td = document.createElement("td");
+  tr.appendChild(td);
+  let inp = document.createElement("input");
+  inp.placeholder = definition.setting || "setting";
+  inp.type = "text";
+  inp.value = instanceOpts.setting || "";
+  td.appendChild(inp);
+
+  td = document.createElement("td");
+  tr.appendChild(td);
+  inp = document.createElement("input");
+  inp.placeholder = definition.value || "value";
+  inp.type = "text";
+  inp.value = instanceOpts.value || "";
+  td.appendChild(inp);
+
+  if (definition.types) {
+    td = document.createElement("td");
+    tr.appendChild(td);
+    let sel = document.createElement("select");
+    sel.setAttribute("data-type", "userValueType");
+    td.appendChild(sel);
+    for (let [type, {label}] of Object.entries(definition.types)) {
+      let opt = document.createElement("option");
+      opt.setAttribute("value", type);
+      if (instanceOpts.type === type) {
+        opt.setAttribute("selected", true);
+      }
+      opt.appendChild(document.createTextNode(label));
+      sel.appendChild(opt);
+    }
+  }
+
+  syncUserValueSelectorType(tr, definition);
+
+  return tr;
+}
+
 function redrawDetails(option) {
   let hook = ScriptOverrideHooks[option];
 
@@ -276,6 +365,19 @@ function redrawDetails(option) {
   let msg = browser.i18n.getMessage(`hookLabel${option}`);
   label.appendChild(document.createTextNode(msg));
   frag.appendChild(label);
+
+  let uservaldefs = hook.userValues;
+  if (uservaldefs) {
+    let table = document.createElement("table");
+    frag.appendChild(table);
+    let uservals = optConfig.userValues || [];
+    if (uservals.length) {
+      for (let opts of uservals) {
+        addUserValueSelector(table, uservaldefs, opts);
+      }
+    }
+    addUserValueSelector(table, uservaldefs);
+  }
 
   let opts = hook.options || {};
   for (let name of Object.keys(opts)) {
@@ -366,6 +468,12 @@ function redrawDetails(option) {
   button.appendChild(document.createTextNode(isActive ? Messages.DisableHook
                                                       : Messages.Cancel));
   frag.appendChild(button);
+
+  if (hook.note) {
+    let q = document.createElement("blockquote");
+    q.appendChild(document.createTextNode(hook.note));
+    frag.appendChild(q);
+  }
 
   details.innerHTML = "";
   details.appendChild(frag);

@@ -80,7 +80,7 @@ let maybeActivateCORSBypassListener = (function() {
       let name = header.name.toLowerCase();
       let replacement = CORS_BYPASS_OVERRIDES[name];
       if (replacement) {
-        console.log(`Bypassing ${name}=${header.value} for ${e.url}`);
+        console.log(browser.i18n.getMessage("bgBypassingCORSHeader", [name, header.value, e.url]));
         header.value = replacement;
       }
     }
@@ -105,5 +105,104 @@ let maybeActivateCORSBypassListener = (function() {
       );
     }
   };
+}());
+
+const setURLReplacements = (function() {
+  let replacements;
+  let rewriteResponse;
+
+  function setURLReplacements(_replacements) {
+    browser.webRequest.onBeforeRequest.removeListener(rewriteResponse);
+    replacements = _replacements;
+    if (replacements) {
+      browser.webRequest.onBeforeRequest.addListener(
+        rewriteResponse,
+        {urls: ["<all_urls>"]},
+        ["blocking"]
+      );
+    }
+  }
+
+  function findReplacement(url) {
+    for (let replacement of replacements) {
+      if (url.match(replacement.regex)) {
+        return replacement;
+      }
+    }
+    return {};
+  }
+
+  // If the browser doesn't support replacing the response body of
+  // webRequests, then simply redirect the requests. This will not
+  // work properly for a lot of stuff, as any files the script
+  // replaces will have to copied over as well, so they can be
+  // referenced on demand (which is not easy to manage).
+  if (!browser || !browser.webRequest.filterResponseData) {
+    let currentlyRewriting = {};
+    rewriteResponse = details => {
+      if (currentlyRewriting[details.id]) {
+        delete currentlyRewriting[details.id];
+        return undefined;
+      }
+
+      let {type, replacement} = findReplacement(details.url);
+      if (type === "redirectURL" && replacement) {
+        currentlyRewriting[details.id] = true;
+        return {redirectUrl: replacement};
+      }
+      return undefined;
+    };
+  } else {
+    // Filter all incoming requests to the URLs, replacing their
+    // contents with the responses we get from the replacement URLs.
+    let currentlyRewriting = {};
+    rewriteResponse = details => {
+      if (currentlyRewriting[details.id]) {
+        delete currentlyRewriting[details.id];
+        return undefined;
+      }
+
+      let {type, replacement} = findReplacement(details.url);
+      if (!type || replacement === undefined) {
+        return undefined;
+      }
+
+      currentlyRewriting[details.id] = true;
+      let filter = browser.webRequest.filterResponseData(details.requestId);
+      if (type === "redirectURL") {
+        filter.onstart = event => {
+          let xhr = new XMLHttpRequest();
+          xhr.open("GET", `${replacement}#${Date.now()}`);
+          xhr.responseType = "arraybuffer";
+          xhr.onerror = err => {
+            let msg = browser.i18n.getMessage("bgExceptionOverridingURL", [details.url, replacement]);
+            console.error(msg, err);
+            filter.write(new Uint8Array(new TextEncoder("utf-8").
+              encode(`${msg}\n${err.message || ""}\n${err.stack || ""}`)));
+            filter.close();
+          };
+          xhr.onload = () => {
+            if (!xhr.status || xhr.status >= 400) {
+              console.error(browser.i18n.getMessage("bgFailureOverridingURL", [xhr.status, details.url, replacement]));
+            } else {
+              filter.write(xhr.response);
+              console.info(browser.i18n.getMessage("bgOverridingURL", [details.url, replacement]));
+            }
+            filter.close();
+          };
+          xhr.send();
+        };
+      } else if (type === "rawText") {
+        filter.onstart = event => {
+          filter.write(new Uint8Array(new TextEncoder("utf-8").
+            encode(replacement)));
+          filter.close();
+        };
+      }
+      return undefined;
+    };
+  }
+
+  return setURLReplacements;
 }());
 

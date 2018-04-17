@@ -6,6 +6,19 @@
     "message": "Tinker Tester Developer Spy"
   },
 
+  "bgBypassingCORSHeader": {
+    "message": "Bypassing $1=$2 for $3"
+  },
+  "bgExceptionOverridingURL": {
+    "message": "Exception thrown while overriding network request to $1 with $2"
+  },
+  "bgFailureOverridingURL": {
+    "message": "HTTP failure status $1 received while overriding network request to $1 with $2"
+  },
+  "bgOverridingURL": {
+    "message": "Overriding network request to $1 with $2"
+  },
+
   "callbackOnCreated": {
     "message": "On Created"
   },
@@ -58,6 +71,9 @@
   "hookLabelObserveXHRandFetch": {
     "message": "XHR and Fetches"
   },
+  "hookLabelOverrideNetworkRequests": {
+    "message": "Override Network Requests"
+  },
   "hookLabelScrolling": {
     "message": "Scrolling"
   },
@@ -102,6 +118,10 @@
     "message": "set to"
   },
 
+  "noteOverrideNetworkRequests": {
+    "message": "For overrides to take effect, you may need to hard-refresh the page (press ctrl/cmd-shift-r, or shift-click or long-tap the refresh button)"
+  },
+
   "optionElementNames": {
     "message": "Element names"
   },
@@ -125,6 +145,12 @@
   },
   "optionStylePropertiesToMonitor": {
     "message": "Style properties to monitor"
+  },
+  "optionURLRedirect": {
+    "message": "Redirect URL or raw text"
+  },
+  "optionURLRegex": {
+    "message": "URL regex to match"
   },
 
   "popupApplyHook": {

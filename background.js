@@ -4,8 +4,8 @@
 
 "use strict";
 
-/* global browser, checkIfActiveOnThisTab,
-          maybeActivateCORSBypassListener, setContentScript */
+/* global browser, checkIfActiveOnThisTab, maybeActivateCORSBypassListener,
+          setContentScript, setURLReplacements */
 
 const IsAndroid = navigator.userAgent.includes("Android");
 
@@ -72,6 +72,29 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           tabConfig[hookName] = Object.assign(tabConfig[hookName] || {}, options);
         }
 
+        // Also update the current network request overrides.
+        let requestOverridesConfig = tabConfig.OverrideNetworkRequests;
+        if (requestOverridesConfig) {
+          let replacements = [];
+          if (requestOverridesConfig.enabled) {
+            for (let {setting, value, type} of tabConfig.OverrideNetworkRequests.userValues) {
+              if (!type) {
+                type = "redirectURL";
+              }
+              if (type === "redirectURL") {
+                try {
+                  new URL(value);
+                } catch (_) {
+                  continue;
+                }
+              }
+              replacements.push({regex: new RegExp(setting), type, replacement: value});
+            }
+          }
+          setURLReplacements(replacements);
+        }
+
+        // Also check if we should activate the CORS bypass.
         maybeActivateCORSBypassListener(tabConfig);
 
         // Also regenerate the content script so that if the user reloads the page,
