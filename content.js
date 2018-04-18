@@ -24,6 +24,9 @@ var Messages = {
 };
 
 var port = window.eval(`(function(Config, Messages) {
+  const gSetTimeout = setTimeout;
+  const gDateNow = Date.now;
+
   function StartDebugger(rv) {
     debugger;
   }
@@ -594,6 +597,74 @@ var port = window.eval(`(function(Config, Messages) {
     }
   };
 
+  class GeolocationHook {
+    constructor() {
+      this.enabled = false;
+      this.watchers = {};
+      this.nextWatcherId = 1;
+    }
+
+    getCoords() {
+      return Object.assign(this.geolocation, {timestamp: gDateNow.call()});
+    }
+
+    updateWatcher(callback) {
+      gSetTimeout.call(window, () => callback(this.getCoords()), 1);
+    }
+
+    setOptions(opts) {
+      this.geolocation = {
+        coords: {
+          accuracy: parseFloat(opts.accuracy) || 1000,
+          altitude: parseFloat(opts.altitude) || 0,
+          altitudeAccuracy: parseFloat(opts.altitudeAccuracy) || 0,
+          heading: parseFloat(opts.heading) || NaN,
+          latitude: parseFloat(opts.latitude) || 0,
+          longitude: parseFloat(opts.longitude) || 0,
+          speed: parseFloat(opts.speed) || NaN,
+        }
+      };
+      if (opts.enabled) {
+        this.enable();
+      }
+      for (let callback of Object.values(this.watchers)) {
+        this.updateWatcher(callback);
+      }
+    }
+
+    enable() {
+      if (!this.override) {
+        this.override = new PropertyHook("navigator.geolocation", {
+          onGetter: (obj, value) => {
+            if (this.geolocation) {
+              return {
+                getCurrentPosition: success => {
+                  success(this.getCoords());
+                },
+                clearWatch: id => {
+                  delete this.watchers[id];
+                },
+                watchPosition: success => {
+                  this.watchers[this.nextWatcherId] = success;
+                  this.updateWatcher(success);
+                  return this.nextWatcherId++;
+                },
+              };
+            }
+            return value;
+          }
+        });
+      }
+      this.override.enable();
+    }
+
+    disable() {
+      if (this.override) {
+        this.override.disable();
+      }
+    }
+  }
+
   class SimpleOverrides {
     constructor() {
       this.overrides = [];
@@ -753,6 +824,9 @@ var port = window.eval(`(function(Config, Messages) {
             break;
           case "FunctionBindLogging":
             hooks[name] = new FunctionBindLogger();
+            break;
+          case "Geolocation":
+            hooks[name] = new GeolocationHook();
             break;
           default: // a group of simple overrides
             hooks[name] = new SimpleHookList();

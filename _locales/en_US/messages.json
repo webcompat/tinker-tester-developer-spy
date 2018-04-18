@@ -53,6 +53,9 @@
   "hookLabelFunctionBindLogging": {
     "message": "function.bind logging"
   },
+  "hookLabelGeolocation": {
+    "message": "Geolocation"
+  },
   "hookLabelInputsLinks": {
     "message": "Inputs and Links"
   },
@@ -106,7 +109,7 @@
     "message": "ignoring call"
   },
   "logInvalidFunctionBind": {
-   "message": "Function.prototype.bind requires a callable object"
+    "message": "Function.prototype.bind requires a callable object"
   },
   "logListenerAddedOn": {
     "message": "listener added on"
@@ -127,6 +130,27 @@
   },
   "optionEventTypes": {
     "message": "Event types"
+  },
+  "optionGeolocationAccuracy": {
+    "message": "Accuracy"
+  },
+  "optionGeolocationAltitude": {
+    "message": "Altitude"
+  },
+  "optionGeolocationAltitudeAccuracy": {
+    "message": "Altitude accuracy"
+  },
+  "optionGeolocationHeading": {
+    "message": "Heading"
+  },
+  "optionGeolocationLatitude": {
+    "message": "Latitude"
+  },
+  "optionGeolocationLongitude": {
+    "message": "Longitude"
+  },
+  "optionGeolocationSpeed": {
+    "message": "Speed"
   },
   "optionOnlyHTTPMethods": {
     "message": "Only for these HTTP methods"

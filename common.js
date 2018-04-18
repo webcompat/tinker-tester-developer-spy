@@ -163,6 +163,17 @@ var ScriptOverrideHooks = {
       "Element.prototype.detachShadow",
     ]
   },
+  "Geolocation": {
+    options: {
+      latitude: browser.i18n.getMessage("optionGeolocationLatitude"),
+      longitude: browser.i18n.getMessage("optionGeolocationLongitude"),
+      accuracy: browser.i18n.getMessage("optionGeolocationAccuracy"),
+      altitude: browser.i18n.getMessage("optionGeolocationAltitude"),
+      altitudeAccuracy: browser.i18n.getMessage("optionGeolocationAltitudeAccuracy"),
+      heading: browser.i18n.getMessage("optionGeolocationHeading"),
+      speed: browser.i18n.getMessage("optionGeolocationSpeed"),
+    },
+  },
   "FunctionBindLogging": {
     type: "checkbox",
   },
