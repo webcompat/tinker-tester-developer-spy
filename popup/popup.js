@@ -81,8 +81,8 @@ function handleClick(e) {
       let changes = {};
       let info = changes[name] = {};
       if (action === "apply") {
-        info.enabled = true;
         let uservals = document.querySelectorAll(".details .uservalue");
+        info.enabled = false;
         if (uservals.length) {
           info.userValues = [];
           for (let userval of uservals) {
@@ -98,34 +98,41 @@ function handleClick(e) {
               info.userValues.push(val);
             }
           }
-          if (!info.userValues.length) {
-            info = {enabled: false};
+          if (info.userValues.length) {
+            info.enabled = true;
           }
         }
         for (let input of document.querySelectorAll(".details input[data-pref]")) {
+          info.enabled = true;
           info[input.getAttribute("data-pref")] = input.value;
         }
         for (let sel of document.querySelectorAll(".details select")) {
           switch (sel.getAttribute("data-type")) {
             case "callback":
+              info.enabled = true;
               info[sel.name] = sel.value;
               break;
             case "overrides":
+              info.enabled = true;
               info.selected = sel.value;
               info.overrides = ScriptOverrideHooks.UserAgentOverrides.overrides[sel.value];
               break;
             case "method":
+              info.enabled = true;
               if (!info.methods) { info.methods = {}; }
               info.methods[sel.name] = sel.value;
               break;
             case "property":
+              info.enabled = true;
               if (!info.properties) { info.properties = {}; }
               info.properties[sel.name] = sel.value;
               break;
           }
         }
-        relatedLI.classList.add("selected");
-        addUnsetButton(relatedLI, name);
+        if (info.enabled) {
+          relatedLI.classList.add("selected");
+          addUnsetButton(relatedLI, name);
+        }
       } else {
         info.enabled = false;
         relatedLI.classList.remove("selected");
