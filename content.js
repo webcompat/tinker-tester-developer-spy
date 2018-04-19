@@ -336,8 +336,8 @@ var port = window.eval(`(function(Config, Messages) {
       let elem = this;
       let type = arguments[0];
       let fn = arguments[1];
-      if (fn.__innerHandler) {
-        return; // already added
+      if (!fn || fn.__innerHandler) {
+        return; // already added, or no handler
       }
       for (let hook of hooks) {
         hook._onAdded(type, elem, fn);
