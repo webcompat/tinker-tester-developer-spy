@@ -665,6 +665,48 @@ var port = window.eval(`(function(Config, Messages) {
     }
   }
 
+  class LanguagesHook {
+    constructor() {
+      this.languageHook = new PropertyHook("navigator.language", {
+        onGetter: (obj, value) => {
+          return this.language || value;
+        }
+      });
+      this.languagesHook = new PropertyHook("navigator.languages", {
+        onGetter: (obj, value) => {
+          return this.languages || value;
+        }
+      });
+    }
+
+    setOptions(opts) {
+      this.language = undefined;
+      this.languages = undefined;
+
+      let acceptHeaderValue = (opts.langs || "").trim();
+      if (acceptHeaderValue) {
+        this.languages = acceptHeaderValue.split(",").map(lang => {
+          return lang.split(";")[0].trim();
+        });
+        this.language = this.languages[0];
+      }
+
+      if (opts.enabled) {
+        this.enable();
+      }
+    }
+
+    enable() {
+      this.languageHook.enable();
+      this.languagesHook.enable();
+    }
+
+    disable() {
+      this.languageHook.disable();
+      this.languagesHook.disable();
+    }
+  }
+
   class SimpleOverrides {
     constructor() {
       this.overrides = [];
@@ -674,7 +716,8 @@ var port = window.eval(`(function(Config, Messages) {
       this.disable();
 
       this.overrides = [];
-      for (let [override, newValue] of Object.entries(opts.overrides || {})) {
+      let overrides = (opts.overrides || {}).script || {};
+      for (let [override, newValue] of Object.entries(overrides)) {
         this.overrides.push(new PropertyHook(override, {
           onGetter: function(obj, value) {
             return newValue;
@@ -827,6 +870,9 @@ var port = window.eval(`(function(Config, Messages) {
             break;
           case "Geolocation":
             hooks[name] = new GeolocationHook();
+            break;
+          case "OverrideLanguages":
+            hooks[name] = new LanguagesHook();
             break;
           default: // a group of simple overrides
             hooks[name] = new SimpleHookList();

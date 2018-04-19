@@ -217,15 +217,15 @@ const setRequestHeaderOverrides = (function() {
 
   function listener(e) {
     let requestHeaders = [];
-    for (let [name, value] of Object.entries(alwaysSet)) {
-      requestHeaders.push({name, value});
+    for (let header of Object.values(alwaysSet)) {
+      requestHeaders.push(header);
     }
     for (let header of e.requestHeaders) {
       let name = header.name.toLowerCase();
       if (alwaysSet[name]) {
         continue;
       } else if (name in onlyOverride) {
-        requestHeaders.push({name, value: onlyOverride[name]});
+        requestHeaders.push(onlyOverride[name]);
       } else {
         requestHeaders.push(header);
       }
@@ -234,8 +234,14 @@ const setRequestHeaderOverrides = (function() {
   }
 
   return function setRequestHeaderOverrides(settings) {
-    onlyOverride = settings.onlyOverride || {};
-    alwaysSet = settings.alwaysSet || {};
+    onlyOverride = {};
+    for (let [name, value] of Object.entries(settings.onlyOverride || {})) {
+      onlyOverride[name.toLowerCase()] = {name, value};
+    }
+    alwaysSet = {};
+    for (let [name, value] of Object.entries(settings.alwaysSet || {})) {
+      alwaysSet[name.toLowerCase()] = {name, value};
+    }
     let shouldListen = Object.keys(onlyOverride).length || Object.keys(alwaysSet).length;
     if (listening && !shouldListen) {
       listening = false;

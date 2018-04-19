@@ -96,12 +96,21 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         // Also update the current request header overrides.
         let requestHeaderOverrides = {alwaysSet: {}, onlyOverride: {}};
+        let userAgentOverrides = tabConfig.UserAgentOverrides;
+        if (userAgentOverrides && userAgentOverrides.enabled) {
+          let overrides = (userAgentOverrides.overrides || {}).headers || {};
+          for (let [name, value] of Object.entries(overrides)) {
+            requestHeaderOverrides.alwaysSet[name] = value;
+          }
+        }
+        let languageOverrides = tabConfig.OverrideLanguages;
+        if (languageOverrides && languageOverrides.enabled) {
+          requestHeaderOverrides.alwaysSet["Accept-Language"] = languageOverrides.langs;
+        }
         let requestHeaderOverridesConfig = tabConfig.OverrideRequestHeaders;
-        if (requestHeaderOverridesConfig) {
-          if (requestHeaderOverridesConfig.enabled) {
-            for (let {setting, value, type} of requestHeaderOverridesConfig.userValues) {
-              requestHeaderOverrides[type][setting.toLowerCase()] = value;
-            }
+        if (requestHeaderOverridesConfig && requestHeaderOverridesConfig.enabled) {
+          for (let {setting, value, type} of requestHeaderOverridesConfig.userValues) {
+            requestHeaderOverrides[type][setting] = value;
           }
         }
         setRequestHeaderOverrides(requestHeaderOverrides);

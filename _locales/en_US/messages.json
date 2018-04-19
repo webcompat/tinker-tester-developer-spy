@@ -74,6 +74,9 @@
   "hookLabelObserveXHRandFetch": {
     "message": "XHR and Fetches"
   },
+  "hookLabelOverrideLanguages": {
+    "message": "Override Languages"
+  },
   "hookLabelOverrideNetworkRequests": {
     "message": "Override Network Requests"
   },
@@ -160,6 +163,9 @@
   },
   "optionHeaderValue": {
     "message": "Header value"
+  },
+  "optionLanguages": {
+    "message": "Accept-Language header value"
   },
   "optionOnlyHTTPMethods": {
     "message": "Only for these HTTP methods"
