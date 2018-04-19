@@ -4,6 +4,8 @@
 
 "use strict";
 
+/* global browser */
+
 const ContentScriptURL = new URL(document.currentScript.src).
                            pathname.replace("Background", "Content");
 
@@ -23,8 +25,8 @@ var UnsafeContentScriptEvals = (function() {
     if (cs) {
       try {
         await cs.unregister();
-      } catch(e) {}
-      delete(ActiveConfigContentScripts[url]);
+      } catch (e) {}
+      delete ActiveConfigContentScripts[url];
     }
   }
 
@@ -43,20 +45,23 @@ var UnsafeContentScriptEvals = (function() {
       let name = header.name.toLowerCase();
       if (name === "content-security-policy" ||
           name === "content-security-policy-report-only") {
-        let match;
+        let match = header.value.match(ScriptSrcCheckRE);
         let madeChange = false;
-        if (match = header.value.match(ScriptSrcCheckRE)) {
+        if (match) {
           if (!match[2]) {
             madeChange = true;
             header.value = header.value.
               replace("script-src", "script-src 'unsafe-eval'");
           }
-        } else if (match = header.value.match(DefaultSrcCheckRE)) {
-          if (!match[2]) {
-            madeChange = true;
-            let defaultSrcs = header.value.match(DefaultSrcGetRE)[1] 
-            header.value = header.value.replace("default-src",
-              `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
+        } else {
+          match = header.value.match(DefaultSrcCheckRE);
+          if (match) {
+            if (!match[2]) {
+              madeChange = true;
+              let defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
+              header.value = header.value.replace("default-src",
+                `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
+            }
           }
         }
         if (madeChange) {
@@ -123,7 +128,7 @@ var UnsafeContentScriptEvals = (function() {
         Filters,
         ["blocking", "responseHeaders"]
       );
-      
+
       Filters = undefined;
     }
   }

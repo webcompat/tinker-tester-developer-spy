@@ -4,6 +4,8 @@
 
 "use strict";
 
+/* global browser */
+
 function BlockUnsafeEvals(url, CSP, AllowEvalsToken) {
   window.eval(`(function(CSP, AllowEvalsToken) {
     const ErrorSource = "call to eval() or related function blocked by CSP";
