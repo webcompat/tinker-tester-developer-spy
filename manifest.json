@@ -27,6 +27,7 @@
   "background": {
     "scripts": [
       "common.js",
+      "UnsafeContentScriptEvalsBackground.js",
       "background_utils.js",
       "background.js"
     ]

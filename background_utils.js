@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* global browser */
+/* global browser, UnsafeContentScriptEvals */
 
 function checkIfActiveOnThisTab(tabConfig) {
   if (browser.browserAction.setIcon) {
@@ -20,6 +20,8 @@ function checkIfActiveOnThisTab(tabConfig) {
   }
 }
 
+const AllowEvalsToken = UnsafeContentScriptEvals.allow();
+
 const setContentScript = (function() {
   if (!browser.contentScripts) {
     return async function() {};
@@ -27,11 +29,13 @@ const setContentScript = (function() {
 
   let currentContentScript;
 
-  return async function setContentScript(config = {}, alsoRunNow = false) {
+  return async function setContentScript(_config = {}, alsoRunNow = false) {
     if (currentContentScript) {
       await currentContentScript.unregister();
       currentContentScript = undefined;
     }
+
+    let config = Object.assign(_config, {AllowEvalsToken});
 
     let scripts = [{file: "common.js"},
                    {code: `var Config = ${JSON.stringify(config)};`},

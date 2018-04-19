@@ -56,9 +56,9 @@ var port = window.eval(`(function(Config, Messages) {
         return null;
       };
     } else if (code === "nothing") {
-      return new Function("");
+      return function() {};
     } else {
-      return new Function(code);
+      return new Function(code + "//" + Config.AllowEvalsToken);
     }
   }
 
