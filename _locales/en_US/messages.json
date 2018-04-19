@@ -77,6 +77,9 @@
   "hookLabelOverrideNetworkRequests": {
     "message": "Override Network Requests"
   },
+  "hookLabelOverrideRequestHeaders": {
+    "message": "Override Request Headers"
+  },
   "hookLabelScrolling": {
     "message": "Scrolling"
   },
@@ -152,6 +155,12 @@
   "optionGeolocationSpeed": {
     "message": "Speed"
   },
+  "optionHeaderName": {
+    "message": "Header name"
+  },
+  "optionHeaderValue": {
+    "message": "Header value"
+  },
   "optionOnlyHTTPMethods": {
     "message": "Only for these HTTP methods"
   },
@@ -209,6 +218,19 @@
   },
   "popupUpdateHook": {
     "message": "Update"
+  },
+
+  "typeOverrideNetworkRequestRedirectURL": {
+    "message": "Redirect URL"
+  },
+  "typeOverrideNetworkRequestRawText": {
+    "message": "Raw Text"
+  },
+  "typeOverrideRequestHeaderAlwaysSet": {
+    "message": "Always set"
+  },
+  "typeOverrideRequestHeaderOnlyOverride": {
+    "message": "Only override"
   },
 
   "uaChromeAndroidTablet": {

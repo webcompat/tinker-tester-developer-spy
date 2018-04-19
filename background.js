@@ -5,7 +5,7 @@
 "use strict";
 
 /* global browser, checkIfActiveOnThisTab, maybeActivateCORSBypassListener,
-          setContentScript, setURLReplacements */
+          setContentScript, setRequestHeaderOverrides, setURLReplacements */
 
 const IsAndroid = navigator.userAgent.includes("Android");
 
@@ -93,6 +93,18 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           setURLReplacements(replacements);
         }
+
+        // Also update the current request header overrides.
+        let requestHeaderOverrides = {alwaysSet: {}, onlyOverride: {}};
+        let requestHeaderOverridesConfig = tabConfig.OverrideRequestHeaders;
+        if (requestHeaderOverridesConfig) {
+          if (requestHeaderOverridesConfig.enabled) {
+            for (let {setting, value, type} of requestHeaderOverridesConfig.userValues) {
+              requestHeaderOverrides[type][setting.toLowerCase()] = value;
+            }
+          }
+        }
+        setRequestHeaderOverrides(requestHeaderOverrides);
 
         // Also check if we should activate the CORS bypass.
         maybeActivateCORSBypassListener(tabConfig);

@@ -17,11 +17,21 @@ var ScriptOverrideHooks = {
       setting: browser.i18n.getMessage("optionURLRegex"),
       value: browser.i18n.getMessage("optionURLRedirect"),
       types: {
-        redirectURL: {label: "Redirect URL", type: "url"},
-        rawText: {label: "Raw Text", type: "text"},
+        redirectURL: {label: browser.i18n.getMessage("typeOverrideNetworkRequestRedirectURL"), type: "url"},
+        rawText: {label: browser.i18n.getMessage("typeOverrideNetworkRequestRawText"), type: "text"},
       },
     },
     note: browser.i18n.getMessage("noteOverrideNetworkRequests"),
+  },
+  "OverrideRequestHeaders": {
+    userValues: {
+      setting: browser.i18n.getMessage("optionHeaderName"),
+      value: browser.i18n.getMessage("optionHeaderValue"),
+      types: {
+        alwaysSet: {label: browser.i18n.getMessage("typeOverrideRequestHeaderAlwaysSet")},
+        onlyOverride: {label: browser.i18n.getMessage("typeOverrideRequestHeaderOnlyOverride")},
+      },
+    },
   },
   "ListenForElementCreation": {
     options: {names: browser.i18n.getMessage("optionElementNames")},

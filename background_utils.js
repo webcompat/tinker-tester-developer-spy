@@ -206,3 +206,43 @@ const setURLReplacements = (function() {
   return setURLReplacements;
 }());
 
+const setRequestHeaderOverrides = (function() {
+  let onlyOverride;
+  let alwaysSet;
+  let listening = false;
+
+  function listener(e) {
+    let requestHeaders = [];
+    for (let [name, value] of Object.entries(alwaysSet)) {
+      requestHeaders.push({name, value});
+    }
+    for (let header of e.requestHeaders) {
+      let name = header.name.toLowerCase();
+      if (alwaysSet[name]) {
+        continue;
+      } else if (name in onlyOverride) {
+        requestHeaders.push({name, value: onlyOverride[name]});
+      } else {
+        requestHeaders.push(header);
+      }
+    }
+    return {requestHeaders};
+  }
+
+  return function setRequestHeaderOverrides(settings) {
+    onlyOverride = settings.onlyOverride || {};
+    alwaysSet = settings.alwaysSet || {};
+    let shouldListen = Object.keys(onlyOverride).length || Object.keys(alwaysSet).length;
+    if (listening && !shouldListen) {
+      listening = false;
+      browser.webRequest.onBeforeSendHeaders.removeListener(listener);
+    } else if (!listening && shouldListen) {
+      listening = true;
+      browser.webRequest.onBeforeSendHeaders.addListener(listener,
+        {"urls": ["<all_urls>"]},
+        ["blocking", "requestHeaders"]
+      );
+    }
+  };
+}());
+
