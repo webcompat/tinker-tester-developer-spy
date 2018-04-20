@@ -117,16 +117,20 @@ let maybeActivateCORSBypassListener = (function() {
 const setURLReplacements = (function() {
   let replacements;
   let rewriteResponse;
+  let listening = false;
 
   function setURLReplacements(_replacements) {
-    browser.webRequest.onBeforeRequest.removeListener(rewriteResponse);
     replacements = _replacements;
-    if (replacements) {
+    if (replacements && !listening) {
+      listening = true;
       browser.webRequest.onBeforeRequest.addListener(
         rewriteResponse,
         {urls: ["<all_urls>"]},
         ["blocking"]
       );
+    } else if (!replacements && listening) {
+      listening = false;
+      browser.webRequest.onBeforeRequest.removeListener(rewriteResponse);
     }
   }
 
