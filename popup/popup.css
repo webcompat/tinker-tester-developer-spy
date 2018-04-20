@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 * {
-  -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
+}
+input, textarea {
+  -moz-user-select: text;
+  user-select: text;
 }
 html {
   --size: 24px;
