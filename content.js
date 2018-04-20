@@ -360,7 +360,7 @@ var port = window.eval(`(function(Config, Messages) {
       let elem = this;
       let type = arguments[0];
       let fn = arguments[1];
-      if (fn.__innerHandler) {
+      if (fn && fn.__innerHandler) {
         for (let hook of hooks) {
           hook._onRemoved(type, elem, fn.__innerHandler);
         }
