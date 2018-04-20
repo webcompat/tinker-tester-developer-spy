@@ -152,10 +152,10 @@ const setURLReplacements = (function() {
         return undefined;
       }
 
-      let {type, replacement} = findReplacement(details.url);
-      if (type === "redirectURL" && replacement) {
+      let {type, redirectUrl} = findReplacement(details.url);
+      if (type === "redirectURL" && redirectUrl) {
         currentlyRewriting[details.id] = true;
-        return {redirectUrl: replacement};
+        return {redirectUrl};
       }
       return undefined;
     };
