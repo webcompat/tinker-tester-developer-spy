@@ -20,13 +20,64 @@ let gTabConfigs = {};
 
 setContentScript({}, true);
 
-browser.tabs.onActivated.addListener(activeInfo => {
+function onActiveTabConfigUpdated(tabConfig) {
+  // Update the current network request overrides.
+  let requestOverridesConfig = tabConfig && tabConfig.OverrideNetworkRequests;
+  if (requestOverridesConfig) {
+    let replacements = [];
+    if (requestOverridesConfig.enabled) {
+      for (let {setting, value, type} of tabConfig.OverrideNetworkRequests.userValues) {
+        if (!type) {
+          type = "redirectURL";
+        }
+        if (type === "redirectURL") {
+          try {
+            new URL(value);
+          } catch (_) {
+            continue;
+          }
+        }
+        replacements.push({regex: new RegExp(setting), type, replacement: value});
+      }
+    }
+    setURLReplacements(replacements);
+  }
+
+  // Also update the current request header overrides.
+  let requestHeaderOverrides = {alwaysSet: {}, onlyOverride: {}};
+  let userAgentOverrides = tabConfig && tabConfig.UserAgentOverrides;
+  if (userAgentOverrides && userAgentOverrides.enabled) {
+    let overrides = (userAgentOverrides.overrides || {}).headers || {};
+    for (let [name, value] of Object.entries(overrides)) {
+      requestHeaderOverrides.alwaysSet[name] = value;
+    }
+  }
+  let languageOverrides = tabConfig && tabConfig.OverrideLanguages;
+  if (languageOverrides && languageOverrides.enabled) {
+    requestHeaderOverrides.alwaysSet["Accept-Language"] = languageOverrides.langs;
+  }
+  let requestHeaderOverridesConfig = tabConfig && tabConfig.OverrideRequestHeaders;
+  if (requestHeaderOverridesConfig && requestHeaderOverridesConfig.enabled) {
+    for (let {setting, value, type} of requestHeaderOverridesConfig.userValues) {
+      requestHeaderOverrides[type][setting] = value;
+    }
+  }
+  setRequestHeaderOverrides(requestHeaderOverrides);
+
+  // Also check if we should activate the CORS bypass.
+  maybeActivateCORSBypassListener(tabConfig);
+
+  // Also regenerate the content script so that if the user reloads the page,
+  // the config is retained (and is run before page scripts are run).
   // If the tabConfig is undefined, then the content script was never run for
   // the tab. We need to run it now, so tell setContentScript to do so.
-  let tabConfig = gTabConfigs[activeInfo.tabId];
   setContentScript(tabConfig, tabConfig === undefined);
+}
 
-  maybeActivateCORSBypassListener(tabConfig);
+browser.tabs.onActivated.addListener(activeInfo => {
+  let tabConfig = gTabConfigs[activeInfo.tabId];
+
+  onActiveTabConfigUpdated(tabConfig);
 
   checkIfActiveOnThisTab(tabConfig);
 
@@ -72,55 +123,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           tabConfig[hookName] = Object.assign(tabConfig[hookName] || {}, options);
         }
 
-        // Also update the current network request overrides.
-        let requestOverridesConfig = tabConfig.OverrideNetworkRequests;
-        if (requestOverridesConfig) {
-          let replacements = [];
-          if (requestOverridesConfig.enabled) {
-            for (let {setting, value, type} of tabConfig.OverrideNetworkRequests.userValues) {
-              if (!type) {
-                type = "redirectURL";
-              }
-              if (type === "redirectURL") {
-                try {
-                  new URL(value);
-                } catch (_) {
-                  continue;
-                }
-              }
-              replacements.push({regex: new RegExp(setting), type, replacement: value});
-            }
-          }
-          setURLReplacements(replacements);
-        }
-
-        // Also update the current request header overrides.
-        let requestHeaderOverrides = {alwaysSet: {}, onlyOverride: {}};
-        let userAgentOverrides = tabConfig.UserAgentOverrides;
-        if (userAgentOverrides && userAgentOverrides.enabled) {
-          let overrides = (userAgentOverrides.overrides || {}).headers || {};
-          for (let [name, value] of Object.entries(overrides)) {
-            requestHeaderOverrides.alwaysSet[name] = value;
-          }
-        }
-        let languageOverrides = tabConfig.OverrideLanguages;
-        if (languageOverrides && languageOverrides.enabled) {
-          requestHeaderOverrides.alwaysSet["Accept-Language"] = languageOverrides.langs;
-        }
-        let requestHeaderOverridesConfig = tabConfig.OverrideRequestHeaders;
-        if (requestHeaderOverridesConfig && requestHeaderOverridesConfig.enabled) {
-          for (let {setting, value, type} of requestHeaderOverridesConfig.userValues) {
-            requestHeaderOverrides[type][setting] = value;
-          }
-        }
-        setRequestHeaderOverrides(requestHeaderOverrides);
-
-        // Also check if we should activate the CORS bypass.
-        maybeActivateCORSBypassListener(tabConfig);
-
-        // Also regenerate the content script so that if the user reloads the page,
-        // the config is retained (and is run before page scripts are run).
-        setContentScript(tabConfig);
+        onActiveTabConfigUpdated(tabConfig);
 
         // Also send the changes to the tab's content script so it can act on them.
         browser.tabs.sendMessage(tabId, changes);

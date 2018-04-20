@@ -7,17 +7,20 @@
 /* global browser, UnsafeContentScriptEvals */
 
 function checkIfActiveOnThisTab(tabConfig) {
-  if (browser.browserAction.setIcon) {
-    let active = false;
-    for (let setting of Object.values(tabConfig || {})) {
-      if (setting.enabled) {
-        active = true;
-        break;
-      }
+  let active = false;
+  for (let setting of Object.values(tabConfig || {})) {
+    if (setting.enabled) {
+      active = true;
+      break;
     }
+  }
+
+  if (browser.browserAction.setIcon) {
     let path = active ? "icons/active.svg" : "icons/inactive.svg";
     browser.browserAction.setIcon({path});
   }
+
+  return active;
 }
 
 const AllowEvalsToken = UnsafeContentScriptEvals.allow();
@@ -233,7 +236,7 @@ const setRequestHeaderOverrides = (function() {
     return {requestHeaders};
   }
 
-  return function setRequestHeaderOverrides(settings) {
+  return function setRequestHeaderOverrides(settings = {}) {
     onlyOverride = {};
     for (let [name, value] of Object.entries(settings.onlyOverride || {})) {
       onlyOverride[name.toLowerCase()] = {name, value};
