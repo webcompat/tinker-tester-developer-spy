@@ -37,5 +37,6 @@
     "default_icon": "icons/inactive.svg",
     "default_title": "__MSG_addonName__",
     "default_popup": "popup/popup.html"
-  }
+  },
+  "devtools_page": "devtools/devtools.html"
 }
