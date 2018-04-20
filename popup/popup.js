@@ -84,21 +84,24 @@ function handleClick(e) {
         let uservals = document.querySelectorAll(".details .uservalue");
         info.enabled = false;
         if (uservals.length) {
-          info.userValues = [];
+          info.values = {};
           for (let userval of uservals) {
             let inputs = userval.querySelectorAll("input");
             let setting = inputs[0].value;
             let value = inputs[1].value;
             let type = (userval.querySelector("select") || {}).value;
             if (setting && value) {
-              let val = {setting, value};
               if (type !== undefined) {
-                val.type = type;
+                if (!info.values[type]) {
+                  info.values[type] = {};
+                }
+                info.values[type][setting] = value;
+              } else {
+                info.values[setting] = value;
               }
-              info.userValues.push(val);
             }
           }
-          if (info.userValues.length) {
+          if (Object.keys(info.values).length) {
             info.enabled = true;
           }
         }
@@ -295,7 +298,7 @@ function syncUserValueSelectorType(userval, definition) {
   }
 }
 
-function addUserValueSelector(table, definition, instanceOpts = {}) {
+function addUserValueSelector(table, definition, uvType, uvName, uvValue) {
   let tr = document.createElement("tr");
   tr.classList.add("uservalue");
   table.appendChild(tr);
@@ -324,7 +327,7 @@ function addUserValueSelector(table, definition, instanceOpts = {}) {
   let inp = document.createElement("input");
   inp.placeholder = definition.setting || "setting";
   inp.type = "text";
-  inp.value = instanceOpts.setting || "";
+  inp.value = uvName || "";
   td.appendChild(inp);
 
   td = document.createElement("td");
@@ -332,7 +335,7 @@ function addUserValueSelector(table, definition, instanceOpts = {}) {
   inp = document.createElement("input");
   inp.placeholder = definition.value || "value";
   inp.type = "text";
-  inp.value = instanceOpts.value || "";
+  inp.value = uvValue || "";
   td.appendChild(inp);
 
   if (definition.types) {
@@ -344,7 +347,7 @@ function addUserValueSelector(table, definition, instanceOpts = {}) {
     for (let [type, {label}] of Object.entries(definition.types)) {
       let opt = document.createElement("option");
       opt.setAttribute("value", type);
-      if (instanceOpts.type === type) {
+      if (uvType === type) {
         opt.setAttribute("selected", true);
       }
       opt.appendChild(document.createTextNode(label));
@@ -377,10 +380,12 @@ function redrawDetails(option) {
   if (uservaldefs) {
     let table = document.createElement("table");
     frag.appendChild(table);
-    let uservals = optConfig.userValues || [];
-    if (uservals.length) {
-      for (let opts of uservals) {
-        addUserValueSelector(table, uservaldefs, opts);
+    let uservals = optConfig.values || {};
+    if (Object.keys(uservals).length) {
+      for (let [type, valuesForType] of Object.entries(uservals)) {
+        for (let [name, value] of Object.entries(valuesForType)) {
+          addUserValueSelector(table, uservaldefs, type, name, value);
+        }
       }
     }
     addUserValueSelector(table, uservaldefs);

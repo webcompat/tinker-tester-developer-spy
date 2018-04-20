@@ -6,6 +6,13 @@
     "message": "Tinker Tester Developer Spy"
   },
 
+  "apiAnnounceKey": {
+    "message": "TinkerTesterDeveloperSpy API key: KEY"
+  },
+  "apiNoSuchHook": {
+    "message": "No such hook: HOOK"
+  },
+
   "bgBypassingCORSHeader": {
     "message": "Bypassing $1=$2 for $3"
   },
@@ -56,7 +63,7 @@
   "hookLabelGeolocation": {
     "message": "Geolocation"
   },
-  "hookLabelInputsLinks": {
+  "hookLabelInputsAndLinks": {
     "message": "Inputs and Links"
   },
   "hookLabelListenForElementCreation": {
@@ -89,8 +96,8 @@
   "hookLabelShadowDOM": {
     "message": "Shadow DOM"
   },
-  "hookLabelTimeoutsRAF": {
-    "message": "Timeouts and RAF"
+  "hookLabelScheduling": {
+    "message": "Task Scheduling"
   },
   "hookLabelUserAgentOverrides": {
     "message": "Spoof User Agent"

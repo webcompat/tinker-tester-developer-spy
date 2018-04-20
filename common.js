@@ -34,7 +34,7 @@ var ScriptOverrideHooks = {
     },
   },
   "OverrideLanguages": {
-    options: {langs: browser.i18n.getMessage("optionLanguages")},
+    options: {languages: browser.i18n.getMessage("optionLanguages")},
   },
   "ListenForElementCreation": {
     options: {names: browser.i18n.getMessage("optionElementNames")},
@@ -156,7 +156,7 @@ var ScriptOverrideHooks = {
       "document.writeln",
     ]
   },
-  "InputsLinks": {
+  "InputsAndLinks": {
     properties: [
       "HTMLInputElement.prototype.checked",
       "HTMLAnchorElement.prototype.href",
@@ -178,7 +178,7 @@ var ScriptOverrideHooks = {
       "HTMLVideoElement.prototype.src",
     ]
   },
-  "TimeoutsRAF": {
+  "Scheduling": {
     methods: [
       "window.setTimeout",
       "window.setInterval",

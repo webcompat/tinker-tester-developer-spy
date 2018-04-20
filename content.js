@@ -11,6 +11,8 @@
 // create and modify hooks before other page scripts run.
 
 var Messages = {
+  apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
+  apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
   LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
   LogElementCreated: browser.i18n.getMessage("logElementCreated"),
   LogListenerAddedOn: browser.i18n.getMessage("logListenerAddedOn"),
@@ -26,6 +28,7 @@ var Messages = {
 var port = window.eval(`(function(Config, Messages) {
   const gSetTimeout = setTimeout;
   const gDateNow = Date.now;
+  let gConfig = Config;
 
   function StartDebugger(rv) {
     debugger;
@@ -277,21 +280,27 @@ var port = window.eval(`(function(Config, Messages) {
       }
 
       setOptions(opts) {
-        this.onCreated = getActionFor(opts.onCreated) || function(elem) {
-          LogTrace(Messages.LogElementCreated, elem);
-        };
+        if (opts.onCreated) {
+          this.onCreated = getActionFor(opts.onCreated) || function(elem) {
+            LogTrace(Messages.LogElementCreated, elem);
+          };
+        }
 
-        this.regexes = {};
-        let names = getCommaSeparatedList(opts.names).map(_name => {
-          let name = _name.trim().toLowerCase();
-          this.regexes[name] = new RegExp("<" + name, "i");
-          return name;
-        });
+        if (opts.names) {
+          this.regexes = {};
+          let names = getCommaSeparatedList(opts.names).map(_name => {
+            let name = _name.trim().toLowerCase();
+            this.regexes[name] = new RegExp("<" + name, "i");
+            return name;
+          });
+        }
 
-        if (opts.enabled) {
-          this.enable();
-        } else {
-          this.disable();
+        if ("enabled" in opts) {
+          if (opts.enabled) {
+            this.enable();
+          } else {
+            this.disable();
+          }
         }
       }
 
@@ -377,7 +386,9 @@ var port = window.eval(`(function(Config, Messages) {
       }
 
       setOptions(opts) {
-        this.enabled = opts.enabled;
+        if ("enabled" in opts) {
+          this.enabled = !!opts.enabled;
+        }
         this.types = opts.types;
         this.selector = opts.selector;
         this.onAdded = getActionFor(opts.onAdded) || function(type, elem, fn) {
@@ -483,7 +494,10 @@ var port = window.eval(`(function(Config, Messages) {
 
     return class StyleListenerHook {
       setOptions(opts) {
-        this.enabled = opts.enabled;
+        if ("enabled" in opts) {
+          this.enabled = !!opts.enabled;
+        }
+
         this.onGet = getActionFor(opts.onGet) || function(prop, elem, value) {
           LogTrace(elem, ".style." + prop, Messages.LogGetterAccessed, value);
           return value;
@@ -574,14 +588,25 @@ var port = window.eval(`(function(Config, Messages) {
     }
 
     setOptions(opts) {
-      if (opts.enabled) {
-        this.enable();
-      } else {
-        this.disable();
+      if ("enabled" in opts) {
+        if (opts.enabled) {
+          this.enable();
+        } else {
+          this.disable();
+        }
       }
-      this.onSend = getActionFor(opts.onSend) || LogTrace;
-      this.onlyMethods = getCommaSeparatedList(opts.onlyMethods);
-      this.onlyURLs = opts.onlyURLs ? new RegExp(opts.onlyURLs) : undefined;
+
+      if (opts.onSend) {
+        this.onSend = getActionFor(opts.onSend) || LogTrace;
+      }
+
+      if (opts.onlyMethods) {
+        this.onlyMethods = getCommaSeparatedList(opts.onlyMethods);
+      }
+
+      if (opts.onlyURLs) {
+        this.onlyURLs = opts.onlyURLs ? new RegExp(opts.onlyURLs) : undefined;
+      }
     }
 
     enable() {
@@ -613,22 +638,29 @@ var port = window.eval(`(function(Config, Messages) {
     }
 
     setOptions(opts) {
-      this.geolocation = {
-        coords: {
-          accuracy: parseFloat(opts.accuracy) || 1000,
-          altitude: parseFloat(opts.altitude) || 0,
-          altitudeAccuracy: parseFloat(opts.altitudeAccuracy) || 0,
-          heading: parseFloat(opts.heading) || NaN,
-          latitude: parseFloat(opts.latitude) || 0,
-          longitude: parseFloat(opts.longitude) || 0,
-          speed: parseFloat(opts.speed) || NaN,
-        }
-      };
       if (opts.enabled) {
         this.enable();
+      } else {
+        this.disable();
       }
-      for (let callback of Object.values(this.watchers)) {
-        this.updateWatcher(callback);
+
+      if (opts.accuracy || opts.altitude || opts.altitudeAccuracy ||
+          opts.heading || opts.latitude || opts.longitude || opts.speed) {
+        this.geolocation = {
+          coords: {
+            accuracy: parseFloat(opts.accuracy) || 1000,
+            altitude: parseFloat(opts.altitude) || 0,
+            altitudeAccuracy: parseFloat(opts.altitudeAccuracy) || 0,
+            heading: parseFloat(opts.heading) || NaN,
+            latitude: parseFloat(opts.latitude) || 0,
+            longitude: parseFloat(opts.longitude) || 0,
+            speed: parseFloat(opts.speed) || NaN,
+          }
+        };
+
+        for (let callback of Object.values(this.watchers)) {
+          this.updateWatcher(callback);
+        }
       }
     }
 
@@ -680,19 +712,23 @@ var port = window.eval(`(function(Config, Messages) {
     }
 
     setOptions(opts) {
-      this.language = undefined;
-      this.languages = undefined;
+      if (opts.languages) {
+        this.language = undefined;
+        this.languages = undefined;
 
-      let acceptHeaderValue = (opts.langs || "").trim();
-      if (acceptHeaderValue) {
-        this.languages = acceptHeaderValue.split(",").map(lang => {
-          return lang.split(";")[0].trim();
-        });
-        this.language = this.languages[0];
+        let acceptHeaderValue = opts.languages.trim();
+        if (acceptHeaderValue) {
+          this.languages = acceptHeaderValue.split(",").map(lang => {
+            return lang.split(";")[0].trim();
+          });
+          this.language = this.languages[0];
+        }
       }
 
       if (opts.enabled) {
         this.enable();
+      } else {
+        this.disable();
       }
     }
 
@@ -713,20 +749,26 @@ var port = window.eval(`(function(Config, Messages) {
     }
 
     setOptions(opts) {
-      this.disable();
+      if (opts.overrides) {
+        this.disable();
 
-      this.overrides = [];
-      let overrides = (opts.overrides || {}).script || {};
-      for (let [override, newValue] of Object.entries(overrides)) {
-        this.overrides.push(new PropertyHook(override, {
-          onGetter: function(obj, value) {
-            return newValue;
-          }
-        }));
+        this.overrides = [];
+        let overrides = (opts.overrides || {}).script || {};
+        for (let [override, newValue] of Object.entries(overrides)) {
+          this.overrides.push(new PropertyHook(override, {
+            onGetter: function(obj, value) {
+              return newValue;
+            }
+          }));
+        }
       }
 
-      if (opts.enabled) {
-        this.enable();
+      if ("enabled" in opts) {
+        if (opts.enabled) {
+          this.enable();
+        } else {
+          this.disable();
+        }
       }
     }
 
@@ -788,7 +830,7 @@ var port = window.eval(`(function(Config, Messages) {
         hook.disable();
       }
     }
-  };
+  }
 
   const FunctionBindLogger = (function() {
     return class FunctionBindLogger {
@@ -827,8 +869,8 @@ var port = window.eval(`(function(Config, Messages) {
       }
 
       setOptions(opts) {
-        if (opts.enabled) {
-          this.enabled = true;
+        if ("enabled" in opts) {
+          this.enabled = !!opts.enabled;
         }
       }
 
@@ -842,12 +884,16 @@ var port = window.eval(`(function(Config, Messages) {
     };
   }());
 
+  class IgnoredBackgroundScriptHook {
+    setOptions() {}
+    enable() {}
+    disable() {}
+  }
+
   const Hooks = (function() {
     let hooks = {};
 
-    function enableHook(name, _options) {
-      let options = Object.assign({}, _options || {});
-
+    return function Hooks(name) {
       if (!hooks[name]) {
         switch(name) {
           case "ObserveXHRandFetch":
@@ -874,43 +920,39 @@ var port = window.eval(`(function(Config, Messages) {
           case "OverrideLanguages":
             hooks[name] = new LanguagesHook();
             break;
-          default: // a group of simple overrides
+          case "Scrolling":
+          case "DocumentWrite":
+          case "InputsAndLinks":
+          case "MediaElements":
+          case "Scheduling":
+          case "ShadowDOM":
             hooks[name] = new SimpleHookList();
+            break;
+          case "CORSBypass":
+          case "OverrideRequestHeaders":
+          case "OverrideNetworkRequests":
+            hooks[name] = new IgnoredBackgroundScriptHook();
+            break;
+          default:
+            return undefined;
         }
       }
 
-      let hook = hooks[name];
-      if (hook) {
-        if (hook.setOptions) {
-          hook.setOptions(options);
-        }
-      }
-    }
-
-    function disableHook(name) {
-      let hook = hooks[name];
-      if (hook) {
-        hook.disable();
-      }
-    }
-
-    return {
-      enable: enableHook,
-      disable: disableHook,
+      return hooks[name];
     }
   }());
 
   function setOverrides(config) {
+    gConfig = config;
     for (let [name, options] of Object.entries(config || {})) {
-      if (options.enabled) {
-        Hooks.enable(name, options);
-      } else {
-        Hooks.disable(name);
+      let hook = Hooks(name);
+      if (hook) {
+        hook.setOptions(options);
       }
     }
   }
 
-  setOverrides(Config);
+  setOverrides(gConfig);
 
   // return a message port back to the outer content script, so we can securely
   // communicate with it without polluting the window's namespace.
@@ -918,8 +960,50 @@ var port = window.eval(`(function(Config, Messages) {
   channel.port1.onmessage = event => {
     setOverrides(JSON.parse(event.data));
   };
+
+  // expose an API object which requires a secret key that is logged to the
+  // console, to help ease configuration when using the remote devtools.
+  window.Tinker = (function() {
+    const APIKey = crypto.getRandomValues(new Uint32Array(4)).join("");
+
+    console.info(Messages.apiAnnounceKey.replace("KEY", APIKey));
+
+    let permissionDenied = false;
+
+    return function(apiKey) {
+      if (permissionDenied || apiKey != APIKey) {
+        permissionDenied = true;
+        return undefined;
+      }
+
+      return function(name) {
+        let hook = Hooks(name);
+        if (!hook) {
+          throw new Error(Messages.apiNoSuchHook.replace("HOOK", name));
+        }
+        return {
+          check: () => {
+            return gConfig[name];
+          },
+          update: opts => {
+            let changes = {};
+            changes[name] = opts;
+            channel.port1.postMessage(changes);
+          },
+        };
+      };
+    }
+  }());
+
   return channel.port2;
 }(${JSON.stringify(Config)}, ${JSON.stringify(Messages)}));`);
+
+port.onmessage = msg => {
+  let tabConfigChanges = msg.data;
+  if (tabConfigChanges && Object.keys(tabConfigChanges).length) {
+    browser.runtime.sendMessage({tabConfigChanges, closePopup: false});
+  }
+};
 
 // delegate any changes to the inner window's script using a message port
 browser.runtime.onMessage.addListener(

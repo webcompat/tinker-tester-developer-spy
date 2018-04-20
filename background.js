@@ -26,18 +26,17 @@ function onActiveTabConfigUpdated(tabConfig) {
   if (requestOverridesConfig) {
     let replacements = [];
     if (requestOverridesConfig.enabled) {
-      for (let {setting, value, type} of tabConfig.OverrideNetworkRequests.userValues) {
-        if (!type) {
-          type = "redirectURL";
-        }
-        if (type === "redirectURL") {
-          try {
-            new URL(value);
-          } catch (_) {
-            continue;
+      for (let [type, valuesForType] of Object.entries(requestOverridesConfig.values)) {
+        for (let [name, value] of Object.entries(valuesForType)) {
+          if (type === "redirectURL") {
+            try {
+              new URL(value);
+            } catch (_) {
+              continue;
+            }
           }
+          replacements.push({regex: new RegExp(name), type, replacement: value});
         }
-        replacements.push({regex: new RegExp(setting), type, replacement: value});
       }
     }
     setURLReplacements(replacements);
@@ -54,12 +53,14 @@ function onActiveTabConfigUpdated(tabConfig) {
   }
   let languageOverrides = tabConfig && tabConfig.OverrideLanguages;
   if (languageOverrides && languageOverrides.enabled) {
-    requestHeaderOverrides.alwaysSet["Accept-Language"] = languageOverrides.langs;
+    requestHeaderOverrides.alwaysSet["Accept-Language"] = languageOverrides.languages;
   }
   let requestHeaderOverridesConfig = tabConfig && tabConfig.OverrideRequestHeaders;
   if (requestHeaderOverridesConfig && requestHeaderOverridesConfig.enabled) {
-    for (let {setting, value, type} of requestHeaderOverridesConfig.userValues) {
-      requestHeaderOverrides[type][setting] = value;
+    for (let [type, valuesForType] of Object.entries(requestHeaderOverridesConfig.values)) {
+      for (let [name, value] of Object.entries(valuesForType)) {
+        requestHeaderOverrides[type][name] = value;
+      }
     }
   }
   setRequestHeaderOverrides(requestHeaderOverrides);
