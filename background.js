@@ -9,14 +9,14 @@
 
 const IsAndroid = navigator.userAgent.includes("Android");
 
-let gTabConfigs = {};
+const gTabConfigs = {};
 
 const portsToPanels = (function() {
   const ports = {};
   let nextId = 0;
 
   browser.runtime.onConnect.addListener(port => {
-    let id = ++nextId;
+    const id = ++nextId;
     ports[id] = port;
     port.onMessage.addListener(onMessage);
     port.onDisconnect.addListener(function() {
@@ -26,7 +26,7 @@ const portsToPanels = (function() {
 
   async function broadcast(message) {
     for (const port of Object.values(ports)) {
-      return port.postMessage(message);
+      port.postMessage(message);
     }
   }
 
@@ -43,11 +43,11 @@ setContentScript({}, true);
 
 function onActiveTabConfigUpdated(tabConfig) {
   // Update the current network request overrides.
-  let requestOverridesConfig = (tabConfig && tabConfig.OverrideNetworkRequests) || {};
-  let urlReplacements = [];
+  const requestOverridesConfig = (tabConfig && tabConfig.OverrideNetworkRequests) || {};
+  const urlReplacements = [];
   if (requestOverridesConfig.enabled) {
-    for (let [type, valuesForType] of Object.entries(requestOverridesConfig.values)) {
-      for (let [name, value] of Object.entries(valuesForType)) {
+    for (const [type, valuesForType] of Object.entries(requestOverridesConfig.values)) {
+      for (const [name, value] of Object.entries(valuesForType)) {
         if (type === "redirectURL") {
           try {
             new URL(value);
@@ -62,22 +62,22 @@ function onActiveTabConfigUpdated(tabConfig) {
   setURLReplacements(urlReplacements);
 
   // Also update the current request header overrides.
-  let requestHeaderOverrides = {alwaysSet: {}, onlyOverride: {}};
-  let userAgentOverrides = tabConfig && tabConfig.UserAgentOverrides;
+  const requestHeaderOverrides = {alwaysSet: {}, onlyOverride: {}};
+  const userAgentOverrides = tabConfig && tabConfig.UserAgentOverrides;
   if (userAgentOverrides && userAgentOverrides.enabled) {
-    let overrides = (userAgentOverrides.overrides || {}).headers || {};
-    for (let [name, value] of Object.entries(overrides)) {
+    const overrides = (userAgentOverrides.overrides || {}).headers || {};
+    for (const [name, value] of Object.entries(overrides)) {
       requestHeaderOverrides.alwaysSet[name] = value;
     }
   }
-  let languageOverrides = tabConfig && tabConfig.OverrideLanguages;
+  const languageOverrides = tabConfig && tabConfig.OverrideLanguages;
   if (languageOverrides && languageOverrides.enabled) {
     requestHeaderOverrides.alwaysSet["Accept-Language"] = languageOverrides.languages;
   }
-  let requestHeaderOverridesConfig = tabConfig && tabConfig.OverrideRequestHeaders;
+  const requestHeaderOverridesConfig = tabConfig && tabConfig.OverrideRequestHeaders;
   if (requestHeaderOverridesConfig && requestHeaderOverridesConfig.enabled) {
-    for (let [type, valuesForType] of Object.entries(requestHeaderOverridesConfig.values)) {
-      for (let [name, value] of Object.entries(valuesForType)) {
+    for (const [type, valuesForType] of Object.entries(requestHeaderOverridesConfig.values)) {
+      for (const [name, value] of Object.entries(valuesForType)) {
         requestHeaderOverrides[type][name] = value;
       }
     }
@@ -95,7 +95,7 @@ function onActiveTabConfigUpdated(tabConfig) {
 }
 
 browser.tabs.onActivated.addListener(activeInfo => {
-  let tabConfig = gTabConfigs[activeInfo.tabId];
+  const tabConfig = gTabConfigs[activeInfo.tabId];
 
   onActiveTabConfigUpdated(tabConfig);
 
@@ -127,13 +127,13 @@ function onMessage(message, sender) {
       if (tabs[0]) {
         // Fold the changes into our cached config for the tab, so that if we
         // change between tabs, we'll be able to remember its config.
-        let tabId = tabs[0].id;
+        const tabId = tabs[0].id;
         if (!gTabConfigs[tabId]) {
           gTabConfigs[tabId] = {};
         }
         tabConfig = gTabConfigs[tabId];
-        let changes = message.tabConfigChanges;
-        for (let [hookName, options] of Object.entries(changes) || {}) {
+        const changes = message.tabConfigChanges;
+        for (const [hookName, options] of Object.entries(changes) || {}) {
           tabConfig[hookName] = Object.assign(tabConfig[hookName] || {}, options);
         }
 

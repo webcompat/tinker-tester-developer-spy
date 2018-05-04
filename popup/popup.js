@@ -26,7 +26,7 @@ let ActiveTabConfig = {};
 const portToBGScript = (function() {
   let port;
 
-  let panelType = location.hash.substr(1) || "pageAction";
+  const panelType = location.hash.substr(1) || "pageAction";
 
   function connect() {
     port = browser.runtime.connect({name: `${panelType}Port`});
@@ -65,7 +65,6 @@ function applyChanges(changes) {
 }
 
 function onMessageFromBGScript(message) {
-console.log(location.hash, message)
   if (message === "activeTabChanged") {
     onActiveTabChanged();
   } else if (message.tabConfig !== undefined) {
@@ -85,36 +84,36 @@ function onActiveTabChanged() {
 
 function handleClick(e) {
   let option;
-  let li = e.target.closest("li");
+  const li = e.target.closest("li");
   if (li) {
     option = li.getAttribute("data-option");
   }
 
   if (e.target.nodeName === "BUTTON") {
-    let action = e.target.getAttribute("data-action");
+    const action = e.target.getAttribute("data-action");
     if (action === "unset") {
-      let name = e.target.getAttribute("data-name");
-      let relatedLI = document.querySelector(`[data-option="${name}"]`);
-      let changes = {};
+      const name = e.target.getAttribute("data-name");
+      const relatedLI = document.querySelector(`[data-option="${name}"]`);
+      const changes = {};
       changes[name] = {enabled: false};
       relatedLI.classList.remove("selected");
       removeUnsetButton(relatedLI);
       applyChanges(changes);
     } else {
-      let name = document.querySelector(".details").getAttribute("data-for-list-item");
-      let relatedLI = document.querySelector(`[data-option="${name}"]`);
-      let changes = {};
-      let info = changes[name] = {};
+      const name = document.querySelector(".details").getAttribute("data-for-list-item");
+      const relatedLI = document.querySelector(`[data-option="${name}"]`);
+      const changes = {};
+      const info = changes[name] = {};
       if (action === "apply") {
-        let uservals = document.querySelectorAll(".details .uservalue");
+        const uservals = document.querySelectorAll(".details .uservalue");
         info.enabled = false;
         if (uservals.length) {
           info.values = {};
-          for (let userval of uservals) {
-            let inputs = userval.querySelectorAll("input");
-            let setting = inputs[0].value;
-            let value = inputs[1].value;
-            let type = (userval.querySelector("select") || {}).value;
+          for (const userval of uservals) {
+            const inputs = userval.querySelectorAll("input");
+            const setting = inputs[0].value;
+            const value = inputs[1].value;
+            const type = (userval.querySelector("select") || {}).value;
             if (setting && value) {
               if (type !== undefined) {
                 if (!info.values[type]) {
@@ -130,11 +129,11 @@ function handleClick(e) {
             info.enabled = true;
           }
         }
-        for (let input of document.querySelectorAll(".details input[data-pref]")) {
+        for (const input of document.querySelectorAll(".details input[data-pref]")) {
           info.enabled = true;
           info[input.getAttribute("data-pref")] = input.value;
         }
-        for (let sel of document.querySelectorAll(".details select")) {
+        for (const sel of document.querySelectorAll(".details select")) {
           switch (sel.getAttribute("data-type")) {
             case "callback":
               info.enabled = true;
@@ -175,39 +174,39 @@ function handleClick(e) {
 }
 
 function redrawList(tabConfig = {}) {
-  let list = document.querySelector(".list");
+  const list = document.querySelector(".list");
 
-  let frag = document.createDocumentFragment();
+  const frag = document.createDocumentFragment();
 
-  let h = document.createElement("h1");
+  const h = document.createElement("h1");
   h.appendChild(document.createTextNode(Messages.AvailableHooks));
   frag.appendChild(h);
 
   if (tabConfig === false) {
     list.innerHTML = "";
-    let i = document.createElement("i");
+    const i = document.createElement("i");
     i.appendChild(document.createTextNode(Messages.UnavailableForAboutPages));
     frag.appendChild(i);
     list.appendChild(frag);
     return;
   }
 
-  let ol = document.createElement("ol");
+  const ol = document.createElement("ol");
   frag.appendChild(ol);
 
   tabConfig = tabConfig || {};
-  for (let [name, hook] of Object.entries(ScriptOverrideHooks)) {
+  for (const [name, hook] of Object.entries(ScriptOverrideHooks)) {
     if (hook.type === "checkbox") {
       maybeAddCheckbox(name, ol, tabConfig);
       continue;
     }
 
-    let li = document.createElement("li");
+    const li = document.createElement("li");
     li.setAttribute("data-option", name);
     ol.appendChild(li);
 
-    let label = document.createElement("span");
-    let msg = browser.i18n.getMessage(`hookLabel${name}`);
+    const label = document.createElement("span");
+    const msg = browser.i18n.getMessage(`hookLabel${name}`);
     label.appendChild(document.createTextNode(msg));
     li.appendChild(label);
 
@@ -222,17 +221,17 @@ function redrawList(tabConfig = {}) {
 }
 
 function maybeAddCheckbox(hookName, ol, tabConfig) {
-  let hook = ScriptOverrideHooks[hookName];
+  const hook = ScriptOverrideHooks[hookName];
   if (!hook) {
     return;
   }
 
-  let li = document.createElement("li");
+  const li = document.createElement("li");
   ol.appendChild(li);
-  let cb = document.createElement("input");
+  const cb = document.createElement("input");
   cb.id = hookName;
   cb.type = "checkbox";
-  let config = tabConfig[hookName];
+  const config = tabConfig[hookName];
   if (config && config.enabled) {
     cb.checked = true;
   }
@@ -240,16 +239,16 @@ function maybeAddCheckbox(hookName, ol, tabConfig) {
     if (!tabConfig[hookName]) tabConfig[hookName] = {};
     tabConfig[hookName].enabled = !tabConfig[hookName].enabled;
 
-    let enabled = tabConfig[hookName].enabled;
-    let changes = {};
+    const enabled = tabConfig[hookName].enabled;
+    const changes = {};
     changes[hookName] = {enabled};
     applyChanges(changes);
   });
 
   li.appendChild(cb);
-  let label = document.createElement("label");
+  const label = document.createElement("label");
   label.setAttribute("for", hookName);
-  let msg = browser.i18n.getMessage(`hookLabel${hookName}`);
+  const msg = browser.i18n.getMessage(`hookLabel${hookName}`);
   label.appendChild(document.createTextNode(msg));
   li.appendChild(label);
 }
@@ -258,7 +257,7 @@ function addUnsetButton(li, name) {
   if (li.querySelector("[data-action=unset]")) {
     return;
   }
-  let button = document.createElement("button");
+  const button = document.createElement("button");
   button.setAttribute("data-action", "unset");
   button.setAttribute("data-name", name);
   button.appendChild(document.createTextNode(Messages.UnsetHook));
@@ -266,16 +265,16 @@ function addUnsetButton(li, name) {
 }
 
 function removeUnsetButton(li) {
-  let button = li.querySelector("[data-action=unset]");
+  const button = li.querySelector("[data-action=unset]");
   if (button) {
     button.remove();
   }
 }
 
 function addSelectActionCell(name, tr, initialValue, addIgnoreOption = false) {
-  let td = document.createElement("td");
+  const td = document.createElement("td");
   tr.appendChild(td);
-  let sel = document.createElement("select");
+  const sel = document.createElement("select");
   sel.name = name;
   td.appendChild(sel);
 
@@ -318,30 +317,30 @@ function addSelectActionCell(name, tr, initialValue, addIgnoreOption = false) {
 
 function syncUserValueSelectorType(userval, definition) {
   if (definition.types) {
-    let inp = userval.querySelectorAll("input")[1];
+    const inp = userval.querySelectorAll("input")[1];
     inp.type = definition.types[userval.querySelector("select").value].type;
   }
 }
 
 function addUserValueSelector(table, definition, uvType, uvName, uvValue) {
-  let tr = document.createElement("tr");
+  const tr = document.createElement("tr");
   tr.classList.add("uservalue");
   table.appendChild(tr);
   tr.addEventListener("change", e => {
-    let userval = e.target.closest(".uservalue");
+    const userval = e.target.closest(".uservalue");
     if (!userval) {
      return;
     }
     if (e.target.nodeName === "SELECT") {
       syncUserValueSelectorType(userval, definition);
     } else {
-      let isLastUserval = userval.matches(":last-child");
-      let emptyInputCount = userval.querySelectorAll("input:placeholder-shown").length;
+      const isLastUserval = userval.matches(":last-child");
+      const emptyInputCount = userval.querySelectorAll("input:placeholder-shown").length;
       if (isLastUserval && !emptyInputCount) {
         setTimeout(() => {
           addUserValueSelector(table, definition);
         }, 100);
-      } else if (!isLastUserval && emptyInputCount == 2) {
+      } else if (!isLastUserval && emptyInputCount === 2) {
         userval.remove();
       }
     }
@@ -366,11 +365,11 @@ function addUserValueSelector(table, definition, uvType, uvName, uvValue) {
   if (definition.types) {
     td = document.createElement("td");
     tr.appendChild(td);
-    let sel = document.createElement("select");
+    const sel = document.createElement("select");
     sel.setAttribute("data-type", "userValueType");
     td.appendChild(sel);
-    for (let [type, {label}] of Object.entries(definition.types)) {
-      let opt = document.createElement("option");
+    for (const [type, {label}] of Object.entries(definition.types)) {
+      const opt = document.createElement("option");
       opt.setAttribute("value", type);
       if (uvType === type) {
         opt.setAttribute("selected", true);
@@ -386,29 +385,29 @@ function addUserValueSelector(table, definition, uvType, uvName, uvValue) {
 }
 
 function redrawDetails(option) {
-  let hook = ScriptOverrideHooks[option];
+  const hook = ScriptOverrideHooks[option];
 
-  let optConfig = ActiveTabConfig[option] || {};
-  let isActive = !!optConfig.enabled;
+  const optConfig = ActiveTabConfig[option] || {};
+  const isActive = !!optConfig.enabled;
 
-  let details = document.querySelector(".details");
+  const details = document.querySelector(".details");
   details.setAttribute("data-for-list-item", option);
 
-  let frag = document.createDocumentFragment();
+  const frag = document.createDocumentFragment();
 
-  let label = document.createElement("p");
-  let msg = browser.i18n.getMessage(`hookLabel${option}`);
+  const label = document.createElement("p");
+  const msg = browser.i18n.getMessage(`hookLabel${option}`);
   label.appendChild(document.createTextNode(msg));
   frag.appendChild(label);
 
-  let uservaldefs = hook.userValues;
+  const uservaldefs = hook.userValues;
   if (uservaldefs) {
-    let table = document.createElement("table");
+    const table = document.createElement("table");
     frag.appendChild(table);
-    let uservals = optConfig.values || {};
+    const uservals = optConfig.values || {};
     if (Object.keys(uservals).length) {
-      for (let [type, valuesForType] of Object.entries(uservals)) {
-        for (let [name, value] of Object.entries(valuesForType)) {
+      for (const [type, valuesForType] of Object.entries(uservals)) {
+        for (const [name, value] of Object.entries(valuesForType)) {
           addUserValueSelector(table, uservaldefs, type, name, value);
         }
       }
@@ -416,9 +415,9 @@ function redrawDetails(option) {
     addUserValueSelector(table, uservaldefs);
   }
 
-  let opts = hook.options || {};
-  for (let name of Object.keys(opts)) {
-    let inp = document.createElement("input");
+  const opts = hook.options || {};
+  for (const name of Object.keys(opts)) {
+    const inp = document.createElement("input");
     inp.setAttribute("data-pref", name);
     inp.placeholder = opts[name];
     inp.type = "text";
@@ -426,70 +425,70 @@ function redrawDetails(option) {
     frag.appendChild(inp);
   }
 
-  let overrides = Object.keys(hook.overrides || {});
+  const overrides = Object.keys(hook.overrides || {});
   if (overrides.length) {
-    let initialValue = optConfig.selected;
-    let sel = document.createElement("select");
+    const initialValue = optConfig.selected;
+    const sel = document.createElement("select");
     sel.setAttribute("data-type", "overrides");
     frag.appendChild(sel);
-    for (let name of overrides) {
-      let opt = document.createElement("option");
+    for (const name of overrides) {
+      const opt = document.createElement("option");
       opt.setAttribute("value", name);
       if (initialValue === name) {
         opt.setAttribute("selected", true);
       }
-      let msg = browser.i18n.getMessage(name);
+      const msg = browser.i18n.getMessage(name);
       opt.appendChild(document.createTextNode(msg));
       sel.appendChild(opt);
     }
   }
 
-  let cbs = Object.entries(hook.callbacks || {});
+  const cbs = Object.entries(hook.callbacks || {});
   if (cbs.length) {
-    let table = document.createElement("table");
+    const table = document.createElement("table");
     frag.appendChild(table);
-    for (let [name, label] of cbs) {
-      let config = optConfig[name];
+    for (const [name, label] of cbs) {
+      const config = optConfig[name];
 
-      let tr = document.createElement("tr");
+      const tr = document.createElement("tr");
       table.appendChild(tr);
 
-      let td = document.createElement("td");
+      const td = document.createElement("td");
       tr.appendChild(td);
       td.appendChild(document.createTextNode(label));
 
-      let sel = addSelectActionCell(name, tr, config);
+      const sel = addSelectActionCell(name, tr, config);
       sel.setAttribute("data-type", "callback");
     }
   }
 
-  let props = hook.properties || [];
-  let methods = hook.methods || [];
+  const props = hook.properties || [];
+  const methods = hook.methods || [];
   if (props.length || methods.length) {
-    let table = document.createElement("table");
+    const table = document.createElement("table");
     frag.appendChild(table);
-    for (let name of methods) {
-      let tr = document.createElement("tr");
+    for (const name of methods) {
+      const tr = document.createElement("tr");
       table.appendChild(tr);
 
-      let td = document.createElement("td");
+      const td = document.createElement("td");
       tr.appendChild(td);
       td.appendChild(document.createTextNode(name + "()"));
 
-      let config = (optConfig.methods || {})[name];
-      let sel = addSelectActionCell(name, tr, config, true);
+      const config = (optConfig.methods || {})[name];
+      const sel = addSelectActionCell(name, tr, config, true);
       sel.setAttribute("data-type", "method");
     }
-    for (let name of props) {
-      let tr = document.createElement("tr");
+    for (const name of props) {
+      const tr = document.createElement("tr");
       table.appendChild(tr);
 
-      let td = document.createElement("td");
+      const td = document.createElement("td");
       tr.appendChild(td);
       td.appendChild(document.createTextNode(name));
 
-      let config = (optConfig.properties || {})[name];
-      let sel = addSelectActionCell(name, tr, config);
+      const config = (optConfig.properties || {})[name];
+      const sel = addSelectActionCell(name, tr, config);
       sel.setAttribute("data-type", "property");
     }
   }
@@ -507,7 +506,7 @@ function redrawDetails(option) {
   frag.appendChild(button);
 
   if (hook.note) {
-    let q = document.createElement("blockquote");
+    const q = document.createElement("blockquote");
     q.appendChild(document.createTextNode(hook.note));
     frag.appendChild(q);
   }

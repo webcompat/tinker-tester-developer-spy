@@ -11,17 +11,17 @@ const ContentScriptURL = new URL(document.currentScript.src).
 
 const SecureAllowEvalsToken = crypto.getRandomValues(new Uint32Array(4)).join("");
 
-var UnsafeContentScriptEvals = (function() {
+const UnsafeContentScriptEvals = (function() {
   "use strict";
 
   const ScriptSrcCheckRE = new RegExp("(script-src)[^;]*(unsafe-eval)?", "i");
   const DefaultSrcCheckRE = new RegExp("(default-src)[^;]*(unsafe-eval)?", "i");
   const DefaultSrcGetRE = new RegExp("default-src([^;]*)", "i");
 
-  let ActiveConfigContentScripts = {};
+  const ActiveConfigContentScripts = {};
 
   async function unregisterConfigContentScript(url) {
-    let cs = ActiveConfigContentScripts[url];
+    const cs = ActiveConfigContentScripts[url];
     if (cs) {
       try {
         await cs.unregister();
@@ -31,18 +31,18 @@ var UnsafeContentScriptEvals = (function() {
   }
 
   function messageHandler(msg, sender, sendResponse) {
-    let url = msg.unregisterFor;
+    const url = msg.unregisterFor;
     if (url) {
       unregisterConfigContentScript(url);
     }
   }
 
   async function headerHandler(details) {
-    let {url} = details;
+    const {url} = details;
 
     let CSP;
-    for (let header of details.responseHeaders) {
-      let name = header.name.toLowerCase();
+    for (const header of details.responseHeaders) {
+      const name = header.name.toLowerCase();
       if (name === "content-security-policy" ||
           name === "content-security-policy-report-only") {
         let match = header.value.match(ScriptSrcCheckRE);
@@ -58,7 +58,7 @@ var UnsafeContentScriptEvals = (function() {
           if (match) {
             if (!match[2]) {
               madeChange = true;
-              let defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
+              const defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
               header.value = header.value.replace("default-src",
                 `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
             }
@@ -84,9 +84,9 @@ var UnsafeContentScriptEvals = (function() {
       // webRequest's URL, and is deactivated as soon as the content script
       // uses window.eval to setup the page script).
       await unregisterConfigContentScript(url);
-      let code = `BlockUnsafeEvals(${JSON.stringify(url)},
-                                   ${JSON.stringify(CSP)},
-                                   ${JSON.stringify(SecureAllowEvalsToken)})`;
+      const code = `BlockUnsafeEvals(${JSON.stringify(url)},
+                                     ${JSON.stringify(CSP)},
+                                     ${JSON.stringify(SecureAllowEvalsToken)})`;
       ActiveConfigContentScripts[url] = await browser.contentScripts.register({
         allFrames: true,
         matches: [url],

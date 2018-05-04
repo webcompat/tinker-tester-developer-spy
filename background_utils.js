@@ -8,7 +8,7 @@
 
 function checkIfActiveOnThisTab(tabConfig) {
   let active = false;
-  for (let setting of Object.values(tabConfig || {})) {
+  for (const setting of Object.values(tabConfig || {})) {
     if (setting.enabled) {
       active = true;
       break;
@@ -16,7 +16,7 @@ function checkIfActiveOnThisTab(tabConfig) {
   }
 
   if (browser.browserAction.setIcon) {
-    let path = active ? "icons/active.svg" : "icons/inactive.svg";
+    const path = active ? "icons/active.svg" : "icons/inactive.svg";
     browser.browserAction.setIcon({path});
   }
 
@@ -38,11 +38,11 @@ const setContentScript = (function() {
       currentContentScript = undefined;
     }
 
-    let config = Object.assign(_config, {AllowEvalsToken});
+    const config = Object.assign(_config, {AllowEvalsToken});
 
-    let scripts = [{file: "common.js"},
-                   {code: `var Config = ${JSON.stringify(config)};`},
-                   {file: "content.js"}];
+    const scripts = [{file: "common.js"},
+                     {code: `var Config = ${JSON.stringify(config)};`},
+                     {file: "content.js"}];
 
     currentContentScript = await browser.contentScripts.register({
       js: scripts,
@@ -53,9 +53,9 @@ const setContentScript = (function() {
 
     if (alsoRunNow) {
       browser.tabs.query({active: true}).then(async activeTabs => {
-        for (let tab of activeTabs) {
+        for (const tab of activeTabs) {
           if (!tab.url.startsWith("about:")) {
-            for (let scriptOptions of scripts) {
+            for (const scriptOptions of scripts) {
               await browser.tabs.executeScript(
                 tab.id,
                 Object.assign(scriptOptions, {
@@ -71,7 +71,7 @@ const setContentScript = (function() {
   };
 }());
 
-let maybeActivateCORSBypassListener = (function() {
+const maybeActivateCORSBypassListener = (function() {
   let CORSBypassActive = false;
 
   const CORS_BYPASS_OVERRIDES = {
@@ -83,11 +83,11 @@ let maybeActivateCORSBypassListener = (function() {
   };
 
   const CORSBypassListener = e => {
-    for (let header of e.responseHeaders) {
-      let name = header.name.toLowerCase();
-      let replacement = CORS_BYPASS_OVERRIDES[name];
+    for (const header of e.responseHeaders) {
+      const name = header.name.toLowerCase();
+      const replacement = CORS_BYPASS_OVERRIDES[name];
       if (replacement) {
-        console.log(browser.i18n.getMessage("bgBypassingCORSHeader", [name, header.value, e.url]));
+        console.info(browser.i18n.getMessage("bgBypassingCORSHeader", [name, header.value, e.url]));
         header.value = replacement;
       }
     }
@@ -95,7 +95,7 @@ let maybeActivateCORSBypassListener = (function() {
   };
 
   return function maybeActivateCORSBypassListener(tabConfig) {
-    let shouldBeActive = tabConfig && tabConfig.CORSBypass && tabConfig.CORSBypass.enabled;
+    const shouldBeActive = tabConfig && tabConfig.CORSBypass && tabConfig.CORSBypass.enabled;
     if (CORSBypassActive && !shouldBeActive) {
       CORSBypassActive = false;
       browser.webRequest.onHeadersReceived.removeListener(
@@ -135,7 +135,7 @@ const setURLReplacements = (function() {
   }
 
   function findReplacement(url) {
-    for (let replacement of replacements) {
+    for (const replacement of replacements) {
       if (url.match(replacement.regex)) {
         return replacement;
       }
@@ -149,14 +149,14 @@ const setURLReplacements = (function() {
   // replaces will have to copied over as well, so they can be
   // referenced on demand (which is not easy to manage).
   if (!browser || !browser.webRequest.filterResponseData) {
-    let currentlyRewriting = {};
+    const currentlyRewriting = {};
     rewriteResponse = details => {
       if (currentlyRewriting[details.id]) {
         delete currentlyRewriting[details.id];
         return undefined;
       }
 
-      let {type, redirectUrl} = findReplacement(details.url);
+      const {type, redirectUrl} = findReplacement(details.url);
       if (type === "redirectURL" && redirectUrl) {
         currentlyRewriting[details.id] = true;
         return {redirectUrl};
@@ -166,27 +166,27 @@ const setURLReplacements = (function() {
   } else {
     // Filter all incoming requests to the URLs, replacing their
     // contents with the responses we get from the replacement URLs.
-    let currentlyRewriting = {};
+    const currentlyRewriting = {};
     rewriteResponse = details => {
       if (currentlyRewriting[details.id]) {
         delete currentlyRewriting[details.id];
         return undefined;
       }
 
-      let {type, replacement} = findReplacement(details.url);
+      const {type, replacement} = findReplacement(details.url);
       if (!type || replacement === undefined) {
         return undefined;
       }
 
       currentlyRewriting[details.id] = true;
-      let filter = browser.webRequest.filterResponseData(details.requestId);
+      const filter = browser.webRequest.filterResponseData(details.requestId);
       if (type === "redirectURL") {
         filter.onstart = event => {
-          let xhr = new XMLHttpRequest();
+          const xhr = new XMLHttpRequest();
           xhr.open("GET", `${replacement}#${Date.now()}`);
           xhr.responseType = "arraybuffer";
           xhr.onerror = err => {
-            let msg = browser.i18n.getMessage("bgExceptionOverridingURL", [details.url, replacement]);
+            const msg = browser.i18n.getMessage("bgExceptionOverridingURL", [details.url, replacement]);
             console.error(msg, err);
             filter.write(new Uint8Array(new TextEncoder("utf-8").
               encode(`${msg}\n${err.message || ""}\n${err.stack || ""}`)));
@@ -223,12 +223,12 @@ const setRequestHeaderOverrides = (function() {
   let listening = false;
 
   function listener(e) {
-    let requestHeaders = [];
-    for (let header of Object.values(alwaysSet)) {
+    const requestHeaders = [];
+    for (const header of Object.values(alwaysSet)) {
       requestHeaders.push(header);
     }
-    for (let header of e.requestHeaders) {
-      let name = header.name.toLowerCase();
+    for (const header of e.requestHeaders) {
+      const name = header.name.toLowerCase();
       if (alwaysSet[name]) {
         continue;
       } else if (name in onlyOverride) {
@@ -242,14 +242,14 @@ const setRequestHeaderOverrides = (function() {
 
   return function setRequestHeaderOverrides(settings = {}) {
     onlyOverride = {};
-    for (let [name, value] of Object.entries(settings.onlyOverride || {})) {
+    for (const [name, value] of Object.entries(settings.onlyOverride || {})) {
       onlyOverride[name.toLowerCase()] = {name, value};
     }
     alwaysSet = {};
-    for (let [name, value] of Object.entries(settings.alwaysSet || {})) {
+    for (const [name, value] of Object.entries(settings.alwaysSet || {})) {
       alwaysSet[name.toLowerCase()] = {name, value};
     }
-    let shouldListen = Object.keys(onlyOverride).length || Object.keys(alwaysSet).length;
+    const shouldListen = Object.keys(onlyOverride).length || Object.keys(alwaysSet).length;
     if (listening && !shouldListen) {
       listening = false;
       browser.webRequest.onBeforeSendHeaders.removeListener(listener);

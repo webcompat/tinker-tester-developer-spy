@@ -11,7 +11,7 @@ const IsAndroid = navigator.userAgent.includes("Android");
 function redraw(data) {
   redrawList(data);
 
-  let forListItem = document.querySelector(".details").getAttribute("data-for-list-item");
+  const forListItem = document.querySelector(".details").getAttribute("data-for-list-item");
   if (forListItem) {
     redrawDetails(forListItem);
   }
@@ -20,8 +20,8 @@ function redraw(data) {
 function drillDownIntoDetails(config) {
   redrawDetails(config);
 
-  let container = document.querySelector("section");
-  let oldScrollTop = document.scrollingElement.scrollTop;
+  const container = document.querySelector("section");
+  const oldScrollTop = document.scrollingElement.scrollTop;
   container.setAttribute("data-oldScrollTop", oldScrollTop);
 
   slideViewRight();
@@ -35,8 +35,8 @@ function goBackToList() {
 }
 
 function slideViewRight() {
-  let list = document.querySelector(".list");
-  let details = document.querySelector(".details");
+  const list = document.querySelector(".list");
+  const details = document.querySelector(".details");
 
   details.style.position = "relative";
   details.style.left = list.clientWidth + "px";
@@ -46,18 +46,18 @@ function slideViewRight() {
   list.style.maxHeight = details.scrollHeight + "px";
   list.style.overflow = "hidden";
 
-  let container = document.querySelector("section");
+  const container = document.querySelector("section");
   container.addEventListener("transitionend", () => {
     list.style.display = "none";
   }, {once: true});
 
-  let shift = details.getBoundingClientRect().left - 2;
+  const shift = details.getBoundingClientRect().left - 2;
   container.style.transform = "translateX(-" + shift + "px)";
 }
 
 function slideViewBackLeft() {
-  let list = document.querySelector(".list");
-  let details = document.querySelector(".details");
+  const list = document.querySelector(".list");
+  const details = document.querySelector(".details");
 
   details.style.position = "";
   details.style.left = "";
@@ -68,7 +68,7 @@ function slideViewBackLeft() {
   list.style.overflow = "";
   list.style.display = "";
 
-  let container = document.querySelector("section");
+  const container = document.querySelector("section");
   return new Promise(resolve => {
     container.addEventListener("transitionend", () => {
       details.innerHTML = "";
@@ -79,8 +79,8 @@ function slideViewBackLeft() {
 }
 
 function restoreScrollTop() {
-  let container = document.querySelector("section");
-  let oldScrollTop = container.getAttribute("data-oldScrollTop");
+  const container = document.querySelector("section");
+  const oldScrollTop = container.getAttribute("data-oldScrollTop");
   container.removeAttribute("data-oldScrollTop");
   document.scrollingElement.scrollTop = oldScrollTop;
 }

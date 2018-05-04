@@ -10,7 +10,7 @@
 // can modify the page script environment and set up the ability to
 // create and modify hooks before other page scripts run.
 
-var Messages = {
+const Messages = {
   apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
   apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
   LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
@@ -25,7 +25,7 @@ var Messages = {
   LogBoundFunctionCalled: browser.i18n.getMessage("logBoundFunctionCalled"),
 };
 
-var port = window.eval(`(function(Config, Messages) {
+const port = window.eval(`(function(Config, Messages) {
   const gSetTimeout = setTimeout;
   const gDateNow = Date.now;
   let gConfig = Config;
@@ -845,18 +845,18 @@ var port = window.eval(`(function(Config, Messages) {
             throw new TypeError(Messages.InvalidFunctionBind);
           }
 
-          var aArgs   = Array.prototype.slice.call(arguments, 1),
-              fToBind = this,
-              fNOP    = function() {},
-              fBound  = function() {
-                if (me.enabled) {
-                  LogTrace(Messages.LogBoundFunctionCalled, fToBind.toString());
-                }
-                return fToBind.apply(this instanceof fNOP
-                       ? this
-                       : oThis,
-                       aArgs.concat(Array.prototype.slice.call(arguments)));
-              };
+          const aArgs   = Array.prototype.slice.call(arguments, 1),
+                fToBind = this,
+                fNOP    = function() {},
+                fBound  = function() {
+                  if (me.enabled) {
+                    LogTrace(Messages.LogBoundFunctionCalled, fToBind.toString());
+                  }
+                  return fToBind.apply(this instanceof fNOP
+                         ? this
+                         : oThis,
+                         aArgs.concat(Array.prototype.slice.call(arguments)));
+                };
 
           if (this.prototype) {
             // Function.prototype doesn't have a prototype property
@@ -1003,7 +1003,7 @@ var port = window.eval(`(function(Config, Messages) {
 }(${JSON.stringify(Config)}, ${JSON.stringify(Messages)}));`);
 
 port.onmessage = msg => {
-  let tabConfigChanges = msg.data;
+  const tabConfigChanges = msg.data;
   if (tabConfigChanges && Object.keys(tabConfigChanges).length) {
     browser.runtime.sendMessage({tabConfigChanges});
   }
