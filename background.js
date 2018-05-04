@@ -9,8 +9,29 @@
 
 const IsAndroid = navigator.userAgent.includes("Android");
 
-let gIsBrowserActionPopupOpen = false;
 let gTabConfigs = {};
+
+const portsToPanels = (function() {
+  const ports = {};
+  let nextId = 0;
+
+  browser.runtime.onConnect.addListener(port => {
+    let id = ++nextId;
+    ports[id] = port;
+    port.onMessage.addListener(onMessage);
+    port.onDisconnect.addListener(function() {
+      delete ports[id];
+    });
+  });
+
+  async function broadcast(message) {
+    for (const port of Object.values(ports)) {
+      return port.postMessage(message);
+    }
+  }
+
+  return {broadcast};
+}());
 
 // The content-script is tab-specific, and needs to be running on a tab for our
 // browseraction UI to work, but it is not run immediately on any tabs in the
@@ -82,25 +103,19 @@ browser.tabs.onActivated.addListener(activeInfo => {
 
   // We also need to inform the UI that we've switched tabs, so that
   // it can re-draw itself with that tab's current active config.
-  if (gIsBrowserActionPopupOpen) {
-    browser.runtime.sendMessage("activeTabChanged");
-  }
+  portsToPanels.broadcast("activeTabChanged");
 });
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message === "popupOpened") {
-    gIsBrowserActionPopupOpen = true;
-  } else if (message === "popupClosed") {
-    gIsBrowserActionPopupOpen = false;
-  } else if (message === "getActiveTabConfig") {
+function onMessage(message, sender) {
+  if (message === "getActiveTabConfig") {
     // The browseraction UI wants to know what the tab's active config is.
     browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
       // About: pages cannot be altered, so they never have an active config.
-      if (tabs[0] && tabs[0].url.startsWith("about:")) {
-        sendResponse(false);
-      } else {
-        sendResponse(tabs[0] && gTabConfigs[tabs[0].id] || {});
+      let tabConfig = false;
+      if (tabs[0] && !tabs[0].url.startsWith("about:")) {
+        tabConfig = gTabConfigs[tabs[0].id] || {};
       }
+      sender.postMessage({tabConfig});
     });
     return true;
   } else if (message.tabConfigChanges) {
@@ -129,14 +144,10 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
 
       checkIfActiveOnThisTab(tabConfig);
-      sendResponse(tabConfig);
-
-      if (message.closePopup && IsAndroid) {
-        browser.tabs.remove(sender.tab.id);
-      }
+      portsToPanels.broadcast({tabConfig});
     });
     return true;
   }
   return undefined;
-});
-
+}
+browser.runtime.onMessage.addListener(onMessage);

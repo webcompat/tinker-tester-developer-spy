@@ -23,10 +23,35 @@ const Messages = {
 
 let ActiveTabConfig = {};
 
+const portToBGScript = (function() {
+  let port;
+
+  let panelType = location.hash.substr(1) || "pageAction";
+
+  function connect() {
+    port = browser.runtime.connect({name: `${panelType}Port`});
+    port.onMessage.addListener(onMessageFromBGScript);
+    port.onDisconnect.addListener(e => {
+      port = undefined;
+    });
+  }
+
+  connect();
+
+  async function send(message) {
+    if (port) {
+      return port.postMessage(message);
+    }
+    return Promise.reject("background script port disconnected");
+  }
+
+  return {send};
+}());
+
 function applyChanges(changes) {
   if (Object.keys(changes).length) {
-    browser.runtime.sendMessage(
-      {tabConfigChanges: changes, closePopup: false},
+    portToBGScript.send(
+      {tabConfigChanges: changes},
       newActiveTabConfig => {
         ActiveTabConfig = newActiveTabConfig;
         if (!IsAndroid) {
@@ -38,13 +63,16 @@ function applyChanges(changes) {
     // this.close();
   }
 }
-browser.runtime.onMessage.addListener(
-  message => {
-    if (message === "activeTabChanged") {
-      onActiveTabChanged();
-    }
+
+function onMessageFromBGScript(message) {
+console.log(location.hash, message)
+  if (message === "activeTabChanged") {
+    onActiveTabChanged();
+  } else if (message.tabConfig !== undefined) {
+    ActiveTabConfig = message.tabConfig;
+    redraw(ActiveTabConfig);
   }
-);
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   onActiveTabChanged();
@@ -52,10 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function onActiveTabChanged() {
-  browser.runtime.sendMessage("getActiveTabConfig", tabConfig => {
-    ActiveTabConfig = tabConfig;
-    redraw(ActiveTabConfig);
-  });
+  portToBGScript.send("getActiveTabConfig");
 }
 
 function handleClick(e) {
@@ -490,10 +515,3 @@ function redrawDetails(option) {
   details.innerHTML = "";
   details.appendChild(frag);
 }
-
-window.onunload = function() {
-  browser.runtime.sendMessage("popupClosed");
-};
-
-browser.runtime.sendMessage("popupOpened");
-

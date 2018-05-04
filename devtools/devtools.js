@@ -9,6 +9,6 @@
 browser.devtools.panels.create(
   browser.i18n.getMessage("addonName"),
   "../icons/active.svg",
-  "../popup/popup.html"
+  "../popup/popup.html#devtoolsPanel"
 );
 

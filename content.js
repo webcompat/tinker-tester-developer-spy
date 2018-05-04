@@ -976,7 +976,7 @@ var port = window.eval(`(function(Config, Messages) {
         return undefined;
       }
 
-      return function(name) {
+      function Tinker(name) {
         let hook = Hooks(name);
         if (!hook) {
           throw new Error(Messages.apiNoSuchHook.replace("HOOK", name));
@@ -991,6 +991,10 @@ var port = window.eval(`(function(Config, Messages) {
             channel.port1.postMessage(changes);
           },
         };
+      }
+
+      return function() {
+        return Tinker.apply(null, arguments);
       };
     }
   }());
@@ -1001,7 +1005,7 @@ var port = window.eval(`(function(Config, Messages) {
 port.onmessage = msg => {
   let tabConfigChanges = msg.data;
   if (tabConfigChanges && Object.keys(tabConfigChanges).length) {
-    browser.runtime.sendMessage({tabConfigChanges, closePopup: false});
+    browser.runtime.sendMessage({tabConfigChanges});
   }
 };
 
