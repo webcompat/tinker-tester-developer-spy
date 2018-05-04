@@ -22,25 +22,23 @@ setContentScript({}, true);
 
 function onActiveTabConfigUpdated(tabConfig) {
   // Update the current network request overrides.
-  let requestOverridesConfig = tabConfig && tabConfig.OverrideNetworkRequests;
-  if (requestOverridesConfig) {
-    let replacements = [];
-    if (requestOverridesConfig.enabled) {
-      for (let [type, valuesForType] of Object.entries(requestOverridesConfig.values)) {
-        for (let [name, value] of Object.entries(valuesForType)) {
-          if (type === "redirectURL") {
-            try {
-              new URL(value);
-            } catch (_) {
-              continue;
-            }
+  let requestOverridesConfig = (tabConfig && tabConfig.OverrideNetworkRequests) || {};
+  let urlReplacements = [];
+  if (requestOverridesConfig.enabled) {
+    for (let [type, valuesForType] of Object.entries(requestOverridesConfig.values)) {
+      for (let [name, value] of Object.entries(valuesForType)) {
+        if (type === "redirectURL") {
+          try {
+            new URL(value);
+          } catch (_) {
+            continue;
           }
-          replacements.push({regex: new RegExp(name), type, replacement: value});
         }
+        urlReplacements.push({regex: new RegExp(name), type, replacement: value});
       }
     }
-    setURLReplacements(replacements);
   }
+  setURLReplacements(urlReplacements);
 
   // Also update the current request header overrides.
   let requestHeaderOverrides = {alwaysSet: {}, onlyOverride: {}};
