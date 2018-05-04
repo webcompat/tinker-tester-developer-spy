@@ -1,0 +1,23 @@
+{
+  "name": "tinker-tester-developer-spy",
+  "version": "1.0.0",
+  "author": "Mozilla",
+  "bugs": {
+    "url": "https://github.com/webcompat/tinker-tester-developer-spy/issues"
+  },
+  "devDependencies": {
+    "eslint": "4.19.1",
+    "eslint-plugin-json": "^1.2.0",
+    "eslint-plugin-mozilla": "^0.11.0",
+    "eslint-plugin-no-unsanitized": "^3.0.0"
+  },
+  "homepage": "https://github.com/webcompat/tinker-tester-developer-spy#readme",
+  "keywords": [],
+  "license": "MPL-2.0",
+  "private": true,
+  "repository": "webcompat/tinker-tester-developer-spy",
+  "scripts": {
+    "lint": "eslint webextension --ext=js,jsm,json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
