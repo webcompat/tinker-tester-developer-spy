@@ -123,6 +123,7 @@ function onMessage(message, sender) {
     // active tab's config.
     browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
       let tabConfig;
+      let haveInterestingChanges = false;
 
       if (tabs[0]) {
         // Fold the changes into our cached config for the tab, so that if we
@@ -135,18 +136,38 @@ function onMessage(message, sender) {
         const changes = message.tabConfigChanges;
         for (const [hookName, options] of Object.entries(changes) || {}) {
           tabConfig[hookName] = Object.assign(tabConfig[hookName] || {}, options);
+
+          // We don't have to do anything if there are only changes to
+          // the tab's apiKey or apiPermissions (the page script will
+          // have handled it already, we just have to update the config).
+          if (!hookName.startsWith("api")) {
+            haveInterestingChanges = true;
+          }
         }
 
-        onActiveTabConfigUpdated(tabConfig);
+        if (haveInterestingChanges) {
+          onActiveTabConfigUpdated(tabConfig);
 
-        // Also send the changes to the tab's content script so it can act on them.
-        browser.tabs.sendMessage(tabId, changes);
+          // Also send the changes to the tab's content script so it can act on them.
+          browser.tabs.sendMessage(tabId, changes);
+        }
       }
 
-      checkIfActiveOnThisTab(tabConfig);
-      portsToPanels.broadcast({tabConfig});
+      if (haveInterestingChanges) {
+        checkIfActiveOnThisTab(tabConfig);
+        portsToPanels.broadcast({tabConfig});
+      }
     });
-    return true;
+    updateCurrentTabConfig(message.tabConfigChanges);
+  } else if (message.apiKey) {
+    const {apiKey} = message;
+    updateCurrentTabConfig({apiKey}, true);
+  } else if (message.apiPermissionGranted) {
+    const {apiPermissionGranted} = message;
+    updateCurrentTabConfig({apiPermissionGranted}, true);
+  } else if (message.apiPermissionDenied) {
+    const {apiPermissionDenied} = message;
+    updateCurrentTabConfig({apiPermissionDenied}, true);
   }
   return undefined;
 }

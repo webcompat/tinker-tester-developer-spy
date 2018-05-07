@@ -41,7 +41,7 @@ const setContentScript = (function() {
     const config = Object.assign(_config, {AllowEvalsToken});
 
     const scripts = [{file: "common.js"},
-                     {code: `var Config = ${JSON.stringify(config)};`},
+                     {code: `window.Config = ${JSON.stringify(config)};`},
                      {file: "content.js"}];
 
     currentContentScript = await browser.contentScripts.register({

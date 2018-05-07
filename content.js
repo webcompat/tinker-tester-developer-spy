@@ -10,7 +10,7 @@
 // can modify the page script environment and set up the ability to
 // create and modify hooks before other page scripts run.
 
-const Messages = {
+window.Messages = {
   apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
   apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
   LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
@@ -25,7 +25,7 @@ const Messages = {
   LogBoundFunctionCalled: browser.i18n.getMessage("logBoundFunctionCalled"),
 };
 
-const port = window.eval(`(function(Config, Messages) {
+window.port = window.eval(`(function(Config, Messages) {
   const gSetTimeout = setTimeout;
   const gDateNow = Date.now;
   let gConfig = Config;
@@ -964,45 +964,55 @@ const port = window.eval(`(function(Config, Messages) {
   // expose an API object which requires a secret key that is logged to the
   // console, to help ease configuration when using the remote devtools.
   window.Tinker = (function() {
-    const APIKey = crypto.getRandomValues(new Uint32Array(4)).join("");
+    const haveKeyAlready = Config.apiKey;
+    Config.apiKey = Config.apiKey || crypto.getRandomValues(new Uint32Array(4)).join("");
 
-    console.info(Messages.apiAnnounceKey.replace("KEY", APIKey));
+    if (!haveKeyAlready) {
+      console.info(Messages.apiAnnounceKey.replace("KEY", Config.apiKey));
+      channel.port1.postMessage({apiKey: Config.apiKey});
+    }
 
-    let permissionDenied = false;
-
-    return function(apiKey) {
-      if (permissionDenied || apiKey != APIKey) {
-        permissionDenied = true;
+    function Tinker(name) {
+      if (Config.apiPermissionDenied) {
         return undefined;
       }
 
-      function Tinker(name) {
-        let hook = Hooks(name);
-        if (!hook) {
-          throw new Error(Messages.apiNoSuchHook.replace("HOOK", name));
+      if (!Config.apiPermissionGranted) {
+        if (name == Config.apiKey) {
+          Config.apiPermissionGranted = true;
+          channel.port1.postMessage({apiPermissionGranted: true});
+        } else {
+          Config.apiPermissionDenied = true;
+          channel.port1.postMessage({apiPermissionDenied: true});
         }
-        return {
-          check: () => {
-            return gConfig[name];
-          },
-          update: opts => {
-            let changes = {};
-            changes[name] = opts;
-            channel.port1.postMessage(changes);
-          },
-        };
+        return undefined;
       }
 
-      return function() {
-        return Tinker.apply(null, arguments);
+      let hook = Hooks(name);
+      if (!hook) {
+        throw new Error(Messages.apiNoSuchHook.replace("HOOK", name));
+      }
+      return {
+        check: () => {
+          return gConfig[name];
+        },
+        update: opts => {
+          let changes = {};
+          changes[name] = opts;
+          channel.port1.postMessage(changes);
+        },
       };
     }
+
+    return function() {
+      return Tinker.apply(null, arguments);
+    };
   }());
 
   return channel.port2;
-}(${JSON.stringify(Config)}, ${JSON.stringify(Messages)}));`);
+}(${JSON.stringify(window.Config)}, ${JSON.stringify(window.Messages)}));`);
 
-port.onmessage = msg => {
+window.port.onmessage = msg => {
   const tabConfigChanges = msg.data;
   if (tabConfigChanges && Object.keys(tabConfigChanges).length) {
     browser.runtime.sendMessage({tabConfigChanges});
@@ -1012,7 +1022,7 @@ port.onmessage = msg => {
 // delegate any changes to the inner window's script using a message port
 browser.runtime.onMessage.addListener(
   message => {
-    port.postMessage(JSON.stringify(message));
+    window.port.postMessage(JSON.stringify(message));
   }
 );
 

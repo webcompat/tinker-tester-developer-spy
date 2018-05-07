@@ -19,5 +19,8 @@
   "scripts": {
     "lint": "eslint webextension --ext=js,jsm,json",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "npm": "^6.0.0"
   }
 }

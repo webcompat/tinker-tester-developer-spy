@@ -6,7 +6,7 @@
 
 /* global browser */
 
-const ScriptOverrideHooks = {
+window.ScriptOverrideHooks = {
   "ObserveXHRandFetch": {
     options: {onlyMethods: browser.i18n.getMessage("optionOnlyHTTPMethods"),
               onlyURLs: browser.i18n.getMessage("optionOnlyURLs")},
