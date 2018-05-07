@@ -52,7 +52,7 @@ const setContentScript = (function() {
     });
 
     if (alsoRunNow) {
-      browser.tabs.query({active: true}).then(async activeTabs => {
+      browser.tabs.query({active: true, currentWindow: true}).then(async activeTabs => {
         for (const tab of activeTabs) {
           if (!tab.url.startsWith("about:")) {
             for (const scriptOptions of scripts) {

@@ -135,13 +135,18 @@ function onMessage(message, sender) {
         tabConfig = gTabConfigs[tabId];
         const changes = message.tabConfigChanges;
         for (const [hookName, options] of Object.entries(changes) || {}) {
-          tabConfig[hookName] = Object.assign(tabConfig[hookName] || {}, options);
-
           // We don't have to do anything if there are only changes to
           // the tab's apiKey or apiPermissions (the page script will
           // have handled it already, we just have to update the config).
-          if (!hookName.startsWith("api")) {
+          if (hookName.startsWith("api")) {
+            if (options) {
+              tabConfig[hookName] = options;
+            } else {
+              delete tabConfig[hookName];
+            }
+          } else {
             haveInterestingChanges = true;
+            tabConfig[hookName] = Object.assign(tabConfig[hookName] || {}, options);
           }
         }
 
@@ -158,16 +163,6 @@ function onMessage(message, sender) {
         portsToPanels.broadcast({tabConfig});
       }
     });
-    updateCurrentTabConfig(message.tabConfigChanges);
-  } else if (message.apiKey) {
-    const {apiKey} = message;
-    updateCurrentTabConfig({apiKey}, true);
-  } else if (message.apiPermissionGranted) {
-    const {apiPermissionGranted} = message;
-    updateCurrentTabConfig({apiPermissionGranted}, true);
-  } else if (message.apiPermissionDenied) {
-    const {apiPermissionDenied} = message;
-    updateCurrentTabConfig({apiPermissionDenied}, true);
   }
   return undefined;
 }
