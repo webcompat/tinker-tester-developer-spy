@@ -38,7 +38,7 @@ const setContentScript = (function() {
       currentContentScript = undefined;
     }
 
-    const config = Object.assign(_config, {AllowEvalsToken});
+    const config = Object.assign(_config, {AllowEvalsToken, apiKey: AllowEvalsToken});
 
     const scripts = [{file: "common.js"},
                      {code: `window.Config = ${JSON.stringify(config)};`},

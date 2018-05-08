@@ -952,26 +952,9 @@ window.port = window.eval(`(function(Config, Messages) {
     }
   }
 
-  setOverrides(gConfig);
-
-  // return a message port back to the outer content script, so we can securely
-  // communicate with it without polluting the window's namespace.
-  let channel = new MessageChannel();
-  channel.port1.onmessage = event => {
-    setOverrides(JSON.parse(event.data));
-  };
-
   // expose an API object which requires a secret key that is logged to the
   // console, to help ease configuration when using the remote devtools.
-  window.Tinker = (function() {
-    const haveKeyAlready = Config.apiKey;
-    Config.apiKey = Config.apiKey || crypto.getRandomValues(new Uint32Array(4)).join("");
-
-    if (!haveKeyAlready) {
-      console.info(Messages.apiAnnounceKey.replace("KEY", Config.apiKey));
-      channel.port1.postMessage({apiKey: Config.apiKey});
-    }
-
+  let Tinker = (function() {
     function Tinker(name) {
       if (Config.apiPermissionDenied) {
         return undefined;
@@ -981,11 +964,12 @@ window.port = window.eval(`(function(Config, Messages) {
         if (name == Config.apiKey) {
           Config.apiPermissionGranted = true;
           channel.port1.postMessage({apiPermissionGranted: true});
+          return "OK";
         } else {
           Config.apiPermissionDenied = true;
           channel.port1.postMessage({apiPermissionDenied: true});
+          return undefined;
         }
-        return undefined;
       }
 
       let hook = Hooks(name);
@@ -1004,11 +988,39 @@ window.port = window.eval(`(function(Config, Messages) {
       };
     }
 
-    return function() {
-      return Tinker.apply(null, arguments);
+    Tinker.maybeAnnounce = () => {
+      if (!Config.apiPermissionGranted && !Config.apiPermissionDenied) {
+        console.info(Messages.apiAnnounceKey.replace("KEY", Config.apiKey));
+      }
     };
+
+    Tinker.resetAPITest = () => {
+      delete Config.apiPermissionDenied;
+      Tinker.maybeAnnounce();
+    };
+
+    return Tinker;
   }());
 
+  Tinker.maybeAnnounce();
+
+  window.Tinker = function() {
+    return Tinker.apply(null, arguments);
+  };
+
+  setOverrides(gConfig);
+
+  // return a message port back to the outer content script, so we can securely
+  // communicate with it without polluting the window's namespace.
+  let channel = new MessageChannel();
+  channel.port1.onmessage = event => {
+    let message = JSON.parse(event.data);
+    if (message === "resetAPITest") {
+      Tinker.resetAPITest();
+    } else {
+      setOverrides(message);
+    }
+  };
   return channel.port2;
 }(${JSON.stringify(window.Config)}, ${JSON.stringify(window.Messages)}));`);
 

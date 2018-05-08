@@ -95,7 +95,15 @@ function onActiveTabConfigUpdated(tabConfig) {
 }
 
 browser.tabs.onActivated.addListener(activeInfo => {
-  const tabConfig = gTabConfigs[activeInfo.tabId];
+  const {tabId} = activeInfo;
+  const tabConfig = gTabConfigs[tabId];
+
+  // Let the user try authenticating the API again if
+  // they switch tabs or reload.
+  if (tabConfig) {
+    delete tabConfig.apiPermissionDenied;
+    browser.tabs.sendMessage(tabId, "resetAPITest");
+  }
 
   onActiveTabConfigUpdated(tabConfig);
 
