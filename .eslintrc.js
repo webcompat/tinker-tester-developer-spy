@@ -15,8 +15,7 @@ module.exports = {
   root: true,
   rules: {
     'eqeqeq': 'error',
-    'no-console': ['error', { allow: ['warn', 'error', 'trace', 'info'] }],
-    'no-eval': 'off',
+    'no-console': ['error', {allow: ['error', 'info', 'trace', 'warn']}],
     'no-var': 'error',
     'one-var': ['error', 'never'],
     'prefer-const': 'error'

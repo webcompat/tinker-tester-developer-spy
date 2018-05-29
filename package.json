@@ -1,15 +1,21 @@
 {
   "name": "tinker-tester-developer-spy",
-  "version": "1.0.0",
-  "author": "Mozilla",
+  "version": "0.1.0",
+  "author": "Thomas Wisniewski",
   "bugs": {
     "url": "https://github.com/webcompat/tinker-tester-developer-spy/issues"
   },
   "devDependencies": {
     "eslint": "4.19.1",
-    "eslint-plugin-json": "^1.2.0",
-    "eslint-plugin-mozilla": "^0.11.0",
-    "eslint-plugin-no-unsanitized": "^3.0.0"
+    "eslint-plugin-json": "1.2.0",
+    "eslint-plugin-mozilla": "0.11.0",
+    "eslint-plugin-no-unsanitized": "3.0.0",
+    "htmllint-cli": "0.0.7",
+    "npm-run-all": "4.1.2",
+    "stylelint": "9.2.0",
+    "stylelint-config-recommended": "2.1.0",
+    "stylelint-config-standard": "18.2.0",
+    "web-ext": "2.6.0"
   },
   "homepage": "https://github.com/webcompat/tinker-tester-developer-spy#readme",
   "keywords": [],
@@ -17,10 +23,14 @@
   "private": true,
   "repository": "webcompat/tinker-tester-developer-spy",
   "scripts": {
-    "lint": "eslint webextension --ext=js,jsm,json",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "npm": "^6.0.0"
+    "build": "web-ext build",
+    "firefox": "web-ext run",
+    "lint": "npm-run-all lint:*",
+    "lint:addon": "web-ext lint",
+    "lint:css": "stylelint popup/*.css devtools/*.css *.css",
+    "lint:html": "htmllint popup/*.html devtools/*.html *.html",
+    "lint:js": "DEBUG=eslint:cli-engine eslint webextension --ext=js,jsm,json",
+    "pretest": "npm run lint",
+    "test": "echo \"Error: no test specified\" && exit 0"
   }
 }

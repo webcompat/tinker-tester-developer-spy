@@ -1,0 +1,11 @@
+{
+  "extends": [
+    "stylelint-config-recommended",
+    "stylelint-config-standard"
+  ],
+  "rules": {
+    "rule-empty-line-before": null,
+    "selector-combinator-space-before": null,
+    "selector-combinator-space-after": null
+  }
+}
