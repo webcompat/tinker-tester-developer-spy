@@ -29,7 +29,7 @@
     "lint:addon": "web-ext lint",
     "lint:css": "stylelint popup/*.css devtools/*.css *.css",
     "lint:html": "htmllint popup/*.html devtools/*.html *.html",
-    "lint:js": "DEBUG=eslint:cli-engine eslint webextension --ext=js,jsm,json",
+    "lint:js": "DEBUG=eslint:cli-engine eslint . popup devtools --ext=js,jsm,json",
     "pretest": "npm run lint",
     "test": "echo \"Error: no test specified\" && exit 0"
   }
