@@ -25,17 +25,13 @@ window.Messages = {
   LogBoundFunctionCalled: browser.i18n.getMessage("logBoundFunctionCalled"),
 };
 
-window.port = window.eval(`(function(Config, Messages) {
+function pageScript(Config, Messages) {
   const gSetTimeout = setTimeout;
   const gDateNow = Date.now;
   let gConfig = Config;
 
-  function StartDebugger(rv) {
-    debugger;
-  }
-
-  let LogTrace = (function() {
-    let origConsole = console;
+  const LogTrace = (function() {
+    const origConsole = console;
     let tracing = false;
     return function logTrace() {
       if (tracing) {
@@ -45,14 +41,15 @@ window.port = window.eval(`(function(Config, Messages) {
       origConsole.log.apply(origConsole, arguments);
       origConsole.trace();
       tracing = false;
-    }
+    };
   }());
 
   function getActionFor(code) {
     if (code === "start debugger") {
+      // eslint-disable-next-line no-debugger
       return () => { debugger; };
     } else if (code === "log stack trace") {
-      return;
+      return undefined;
     } else if (code === "ignore") {
       return (obj, args) => {
         LogTrace(Messages.LogIgnoringCall, obj, args);
@@ -60,9 +57,8 @@ window.port = window.eval(`(function(Config, Messages) {
       };
     } else if (code === "nothing") {
       return function() {};
-    } else {
-      return new Function(code + "//" + Config.AllowEvalsToken);
     }
+    return new Function(code + "//" + Config.AllowEvalsToken);
   }
 
   class PropertyHook {
@@ -91,7 +87,7 @@ window.port = window.eval(`(function(Config, Messages) {
       }
       let obj = window;
       let index = 0;
-      let count = this.path.length;
+      const count = this.path.length;
       this.revertPoint = undefined;
       while (index < count - 1) {
         let name = this.path[index++];
@@ -117,32 +113,33 @@ window.port = window.eval(`(function(Config, Messages) {
       if (!this.revertPoint) {
         return;
       }
-      let [obj, name, oldprop] = this.revertPoint;
+      const [obj, name, oldprop] = this.revertPoint;
       this.revertPoint = undefined;
       if (oldprop) {
         Object.defineProperty(obj, name, oldprop);
       } else {
-        delete(obj[name]);
+        delete obj[name];
       }
     }
 
     findProperty(obj, name) {
       let proto = obj;
       do {
-        let prop = Object.getOwnPropertyDescriptor(proto, name);
+        const prop = Object.getOwnPropertyDescriptor(proto, name);
         if (prop) {
           return prop;
         }
         proto = Object.getPrototypeOf(proto);
-      } while(proto);
+      } while (proto);
+      return undefined;
     }
 
     mockMissingProperty(obj, name) {
-      let oldprop = this.findProperty(obj, name);
+      const oldprop = this.findProperty(obj, name);
       Object.defineProperty(obj, name, {
         configurable: true, // So reloading the addon doesn't throw an error.
         get: () => {
-          let v = oldprop.get.call(obj);
+          const v = oldprop.get.call(obj);
           if (v) {
             Object.defineProperty(obj, name, oldprop);
             if (!this.revertPoint) {
@@ -166,7 +163,7 @@ window.port = window.eval(`(function(Config, Messages) {
 
     wrapValue(value) {
       if (typeof value === "function") {
-        let me = this;
+        const me = this;
         return function() {
           let retval = me.onCalled(value, arguments);
           if (retval === undefined) {
@@ -177,23 +174,22 @@ window.port = window.eval(`(function(Config, Messages) {
             }
           }
           return retval;
-        }
-      } else {
-        return value;
+        };
       }
+      return value;
     }
 
     overrideProperty(obj, name) {
-      let oldprop = this.findProperty(obj, name);
+      const oldprop = this.findProperty(obj, name);
       if (!this.revertPoint) {
         this.revertPoint = [obj, name, oldprop];
       }
-      let newprop = {
+      const newprop = {
         configurable: true, // So reloading the addon doesn't throw an error.
         enumerable: oldprop && oldprop.enumerable || false,
       };
       if (oldprop && (oldprop.get || oldprop.set)) {
-        let me = this;
+        const me = this;
         newprop.get = function() {
           return me.onGetter(this, oldprop.get.call(this));
         };
@@ -202,32 +198,32 @@ window.port = window.eval(`(function(Config, Messages) {
           oldprop.set.call(this, newValue);
         };
       } else { // value, not get/set (or no such property)
-        let me = this;
+        const me = this;
         newprop.get = function() {
-          let curValue = oldprop && oldprop.value &&
-                         me.wrapValue(oldprop.value);
+          const curValue = oldprop && oldprop.value &&
+                           me.wrapValue(oldprop.value);
           return me.onGetter(this, curValue);
-        }
+        };
         if (!oldprop || oldprop.writable) {
           newprop.set = function(val) {
             oldprop.value = me.onSetter(this, me.wrapValue(val));
-          }
+          };
         }
       }
       Object.defineProperty(obj, name, newprop);
     }
-  };
+  }
 
   function getCommaSeparatedList(str) {
-    let vals = str || "";
+    const vals = str || "";
     if (vals) {
       return vals.split(",").map(v => v.trim());
     }
     return [];
   }
 
-  ElementCreatedHook = (function() {
-    let listeners = [];
+  const ElementCreatedHook = (function() {
+    const listeners = [];
     let createElementHook;
     let createElementNSHook;
     let innerHTMLHook;
@@ -236,32 +232,32 @@ window.port = window.eval(`(function(Config, Messages) {
     function registerNameCreationListener(listener) {
       if (!createElementHook) {
         createElementHook = new PropertyHook("document.createElement", {
-          onCalled: function(fn, args) {
-            let name = args[0].toLowerCase();
-            for (let listener of listeners || []) {
+          onCalled: (fn, args) => {
+            const name = args[0].toLowerCase();
+            for (const listener of listeners || []) {
               listener._onCreated(name);
             }
           },
         });
         createElementNSHook = new PropertyHook("document.createElementNS", {
-          onCalled: function(fn, args) {
-            let name = args[0].toLowerCase();
-            for (let listener of listeners || []) {
+          onCalled: (fn, args) => {
+            const name = args[0].toLowerCase();
+            for (const listener of listeners || []) {
               listener._onCreated(name);
             }
           },
         });
         innerHTMLHook = new PropertyHook("Element.prototype.innerHTML", {
-          onSetter: function(obj, html) {
-            for (let listener of listeners || []) {
+          onSetter: (obj, html) => {
+            for (const listener of listeners || []) {
               listener._onHTML(html);
             }
             return html;
           },
         });
         outerHTMLHook = new PropertyHook("Element.prototype.outerHTML", {
-          onSetter: function(obj, html) {
-            for (let listener of listeners || []) {
+          onSetter: (obj, html) => {
+            for (const listener of listeners || []) {
               listener._onHTML(html);
             }
             return html;
@@ -269,7 +265,7 @@ window.port = window.eval(`(function(Config, Messages) {
         });
       }
 
-      if (listeners.indexOf(listener) < 0) {
+      if (listeners.includes(listener)) {
         listeners.push(listener);
       }
     }
@@ -288,8 +284,8 @@ window.port = window.eval(`(function(Config, Messages) {
 
         if (opts.names) {
           this.regexes = {};
-          let names = getCommaSeparatedList(opts.names).map(_name => {
-            let name = _name.trim().toLowerCase();
+          getCommaSeparatedList(opts.names).map(_name => {
+            const name = _name.trim().toLowerCase();
             this.regexes[name] = new RegExp("<" + name, "i");
             return name;
           });
@@ -326,7 +322,7 @@ window.port = window.eval(`(function(Config, Messages) {
 
       _onHTML(html) {
         if (this.enabled && this.onCreated && this.names) {
-          for (let name of this.names) {
+          for (const name of this.names) {
             if (this.regexes[name].test(html)) {
               this.onCreated(name);
             }
@@ -336,24 +332,24 @@ window.port = window.eval(`(function(Config, Messages) {
     };
   }());
 
-  EventListenerHook = (function() {
+  const EventListenerHook = (function() {
     const hooks = [];
     const oldAEL = EventTarget.prototype.addEventListener;
     const oldREL = EventTarget.prototype.removeEventListener;
 
     EventTarget.prototype.addEventListener = function() {
-      let elem = this;
-      let type = arguments[0];
-      let fn = arguments[1];
+      const elem = this;
+      const type = arguments[0];
+      const fn = arguments[1];
       if (!fn || fn.__innerHandler) {
         return; // already added, or no handler
       }
-      for (let hook of hooks) {
+      for (const hook of hooks) {
         hook._onAdded(type, elem, fn);
       }
       fn.__innerHandler = function(event) {
         let stopEvent = false;
-        for (let hook of hooks) {
+        for (const hook of hooks) {
           if (hook._onEvent(event) === true) {
             stopEvent = true;
           }
@@ -361,24 +357,25 @@ window.port = window.eval(`(function(Config, Messages) {
         if (!stopEvent) {
           return fn.apply(this, arguments);
         }
-      }
+        return undefined;
+      };
       oldAEL.call(this, arguments[0], fn.__innerHandler, arguments[1]);
-    }
+    };
 
     EventTarget.prototype.removeEventListener = function() {
-      let elem = this;
-      let type = arguments[0];
-      let fn = arguments[1];
+      const elem = this;
+      const type = arguments[0];
+      const fn = arguments[1];
       if (fn && fn.__innerHandler) {
-        for (let hook of hooks) {
+        for (const hook of hooks) {
           hook._onRemoved(type, elem, fn.__innerHandler);
         }
         oldREL.call(this, arguments[0], fn.__innerHandler, arguments[1]);
-        delete(fn.__innerHandler);
+        delete fn.__innerHandler;
       } else {
         oldREL.apply(this, arguments);
       }
-    }
+    };
 
     return class EventListenerHook {
       constructor() {
@@ -445,12 +442,12 @@ window.port = window.eval(`(function(Config, Messages) {
     };
   }());
 
-  StyleListenerHook = (function() {
-    const ElementStyleHook = new PropertyHook(
+  const StyleListenerHook = (function() {
+    new PropertyHook(
       "HTMLElement.prototype.style",
       {
         enabled: true,
-        onGetter: function(element, css2Properties) {
+        onGetter: (element, css2Properties) => {
           css2Properties.__relatedElement = element;
           return css2Properties;
         }
@@ -466,17 +463,17 @@ window.port = window.eval(`(function(Config, Messages) {
             "CSS2Properties.prototype." + prop,
             {
               enabled: true,
-              onGetter: function(obj, value) {
+              onGetter: (obj, value) => {
                 if (obj.__relatedElement) {
-                  for (let listener of PropertyNameHooks[prop].listeners || []) {
+                  for (const listener of PropertyNameHooks[prop].listeners || []) {
                     value = listener._onGet(prop, obj.__relatedElement, value);
                   }
                 }
                 return value;
               },
-              onSetter: function(obj, newValue) {
+              onSetter: (obj, newValue) => {
                 if (obj.__relatedElement) {
-                  for (let listener of PropertyNameHooks[prop].listeners || []) {
+                  for (const listener of PropertyNameHooks[prop].listeners || []) {
                     newValue = listener._onSet(prop, obj.__relatedElement, newValue);
                   }
                 }
@@ -486,8 +483,8 @@ window.port = window.eval(`(function(Config, Messages) {
           ),
         };
       }
-      let listeners = PropertyNameHooks[prop].listeners;
-      if (listeners.indexOf(listener) < 0) {
+      const listeners = PropertyNameHooks[prop].listeners;
+      if (listeners.includes(listener)) {
         listeners.push(listener);
       }
     }
@@ -509,7 +506,7 @@ window.port = window.eval(`(function(Config, Messages) {
         this.properties = getCommaSeparatedList(opts.properties);
         this.selector = opts.selector;
         this.onlyValues = opts.onlyValues;
-        for (let prop of this.properties) {
+        for (const prop of this.properties) {
           registerStylePropertyListener(this, prop);
         }
       }
@@ -550,8 +547,8 @@ window.port = window.eval(`(function(Config, Messages) {
         "window.fetch",
         {
           onCalled: (obj, args) => {
-            let method = ((args[1] || {}).method || "get").toLowerCase();
-            let url = new URL(args[0] || "", location).href.toLowerCase();
+            const method = ((args[1] || {}).method || "get").toLowerCase();
+            const url = new URL(args[0] || "", location).href.toLowerCase();
             if (this.onSend &&
                 (!this.onlyMethods || this.onlyMethods.includes(method)) &&
                 (!this.onlyURLs || url.match(this.onlyURLs))) {
@@ -575,8 +572,8 @@ window.port = window.eval(`(function(Config, Messages) {
         "XMLHttpRequest.prototype.send",
         {
           onCalled: (obj, args) => {
-            let method = (this.__lastOpenArgs[0] || "get").toLowerCase();
-            let url = new URL(this.__lastOpenArgs[1] || "", location).href.toLowerCase();
+            const method = (this.__lastOpenArgs[0] || "get").toLowerCase();
+            const url = new URL(this.__lastOpenArgs[1] || "", location).href.toLowerCase();
             if (this.onSend &&
                 (!this.onlyMethods || this.onlyMethods.includes(method)) &&
                 (!this.onlyURLs || url.match(this.onlyURLs))) {
@@ -620,7 +617,7 @@ window.port = window.eval(`(function(Config, Messages) {
       this.openXHRHook.disable();
       this.sendXHRHook.disable();
     }
-  };
+  }
 
   class GeolocationHook {
     constructor() {
@@ -658,7 +655,7 @@ window.port = window.eval(`(function(Config, Messages) {
           }
         };
 
-        for (let callback of Object.values(this.watchers)) {
+        for (const callback of Object.values(this.watchers)) {
           this.updateWatcher(callback);
         }
       }
@@ -716,7 +713,7 @@ window.port = window.eval(`(function(Config, Messages) {
         this.language = undefined;
         this.languages = undefined;
 
-        let acceptHeaderValue = opts.languages.trim();
+        const acceptHeaderValue = opts.languages.trim();
         if (acceptHeaderValue) {
           this.languages = acceptHeaderValue.split(",").map(lang => {
             return lang.split(";")[0].trim();
@@ -753,10 +750,10 @@ window.port = window.eval(`(function(Config, Messages) {
         this.disable();
 
         this.overrides = [];
-        let overrides = (opts.overrides || {}).script || {};
-        for (let [override, newValue] of Object.entries(overrides)) {
+        const overrides = (opts.overrides || {}).script || {};
+        for (const [override, newValue] of Object.entries(overrides)) {
           this.overrides.push(new PropertyHook(override, {
-            onGetter: function(obj, value) {
+            onGetter: (obj, value) => {
               return newValue;
             }
           }));
@@ -773,13 +770,13 @@ window.port = window.eval(`(function(Config, Messages) {
     }
 
     enable() {
-      for (let override of this.overrides) {
+      for (const override of this.overrides) {
         override.enable();
       }
     }
 
     disable() {
-      for (let override of this.overrides) {
+      for (const override of this.overrides) {
         override.disable();
       }
     }
@@ -794,7 +791,7 @@ window.port = window.eval(`(function(Config, Messages) {
       this.disable();
 
       this.hooks = [];
-      for (let [hook, action] of Object.entries(opts.properties || {})) {
+      for (const [hook, action] of Object.entries(opts.properties || {})) {
         this.hooks.push(new PropertyHook(hook, {
           onGetter: getActionFor(action) || function(obj, value) {
             LogTrace(hook, Messages.LogGetterAccessed, value);
@@ -806,7 +803,7 @@ window.port = window.eval(`(function(Config, Messages) {
           }
         }));
       }
-      for (let [hook, action] of Object.entries(opts.methods || {})) {
+      for (const [hook, action] of Object.entries(opts.methods || {})) {
         this.hooks.push(new PropertyHook(hook, {
           onCalled: getActionFor(action) || function(obj, args) {
             LogTrace(hook, Messages.LogCalledWithArgs, args);
@@ -820,13 +817,13 @@ window.port = window.eval(`(function(Config, Messages) {
     }
 
     enable() {
-      for (let hook of this.hooks) {
+      for (const hook of this.hooks) {
         hook.enable();
       }
     }
 
     disable() {
-      for (let hook of this.hooks) {
+      for (const hook of this.hooks) {
         hook.disable();
       }
     }
@@ -836,31 +833,31 @@ window.port = window.eval(`(function(Config, Messages) {
     return class FunctionBindLogger {
       constructor() {
         this.enabled = false;
-        let me = this;
+        const me = this;
 
         Function.prototype.bind = function(oThis) {
-          if (typeof this !== 'function') {
+          if (typeof this !== "function") {
             // closest thing possible to the ECMAScript 5
             // internal IsCallable function
             throw new TypeError(Messages.InvalidFunctionBind);
           }
 
-          const aArgs   = Array.prototype.slice.call(arguments, 1),
-                fToBind = this,
-                fNOP    = function() {},
-                fBound  = function() {
-                  if (me.enabled) {
-                    LogTrace(Messages.LogBoundFunctionCalled, fToBind.toString());
-                  }
-                  return fToBind.apply(this instanceof fNOP
-                         ? this
-                         : oThis,
-                         aArgs.concat(Array.prototype.slice.call(arguments)));
-                };
+          const aArgs   = Array.prototype.slice.call(arguments, 1);
+          const fToBind = this;
+          const fNOP    = function() {};
+          const fBound  = function() {
+            if (me.enabled) {
+              LogTrace(Messages.LogBoundFunctionCalled, fToBind.toString());
+            }
+            return fToBind.apply(this instanceof fNOP
+                   ? this
+                   : oThis,
+                   aArgs.concat(Array.prototype.slice.call(arguments)));
+          };
 
           if (this.prototype) {
             // Function.prototype doesn't have a prototype property
-            fNOP.prototype = this.prototype; 
+            fNOP.prototype = this.prototype;
           }
           fBound.prototype = new fNOP();
 
@@ -891,11 +888,11 @@ window.port = window.eval(`(function(Config, Messages) {
   }
 
   const Hooks = (function() {
-    let hooks = {};
+    const hooks = {};
 
     return function Hooks(name) {
       if (!hooks[name]) {
-        switch(name) {
+        switch (name) {
           case "ObserveXHRandFetch":
             hooks[name] = new XHRandFetchObserver();
             break;
@@ -939,13 +936,13 @@ window.port = window.eval(`(function(Config, Messages) {
       }
 
       return hooks[name];
-    }
+    };
   }());
 
   function setOverrides(config) {
     gConfig = config;
-    for (let [name, options] of Object.entries(config || {})) {
-      let hook = Hooks(name);
+    for (const [name, options] of Object.entries(config || {})) {
+      const hook = Hooks(name);
       if (hook) {
         hook.setOptions(options);
       }
@@ -954,25 +951,24 @@ window.port = window.eval(`(function(Config, Messages) {
 
   // expose an API object which requires a secret key that is logged to the
   // console, to help ease configuration when using the remote devtools.
-  let Tinker = (function() {
+  const Tinker = (function() {
     function Tinker(name) {
       if (Config.apiPermissionDenied) {
         return undefined;
       }
 
       if (!Config.apiPermissionGranted) {
-        if (name == Config.apiKey) {
+        if (name.toString() === Config.apiKey) {
           Config.apiPermissionGranted = true;
           channel.port1.postMessage({apiPermissionGranted: true});
           return "OK";
-        } else {
-          Config.apiPermissionDenied = true;
-          channel.port1.postMessage({apiPermissionDenied: true});
-          return undefined;
         }
+        Config.apiPermissionDenied = true;
+        channel.port1.postMessage({apiPermissionDenied: true});
+        return undefined;
       }
 
-      let hook = Hooks(name);
+      const hook = Hooks(name);
       if (!hook) {
         throw new Error(Messages.apiNoSuchHook.replace("HOOK", name));
       }
@@ -981,7 +977,7 @@ window.port = window.eval(`(function(Config, Messages) {
           return gConfig[name];
         },
         update: opts => {
-          let changes = {};
+          const changes = {};
           changes[name] = opts;
           channel.port1.postMessage(changes);
         },
@@ -1012,9 +1008,9 @@ window.port = window.eval(`(function(Config, Messages) {
 
   // return a message port back to the outer content script, so we can securely
   // communicate with it without polluting the window's namespace.
-  let channel = new MessageChannel();
+  const channel = new MessageChannel();
   channel.port1.onmessage = event => {
-    let message = JSON.parse(event.data);
+    const message = JSON.parse(event.data);
     if (message === "resetAPITest") {
       Tinker.resetAPITest();
     } else {
@@ -1022,7 +1018,10 @@ window.port = window.eval(`(function(Config, Messages) {
     }
   };
   return channel.port2;
-}(${JSON.stringify(window.Config)}, ${JSON.stringify(window.Messages)}));`);
+}
+
+window.port = window.eval(`(${pageScript}(${JSON.stringify(window.Config)},
+                                          ${JSON.stringify(window.Messages)}));`);
 
 window.port.onmessage = msg => {
   const tabConfigChanges = msg.data;
