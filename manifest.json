@@ -3,11 +3,12 @@
   "name": "__MSG_addonName__",
   "default_locale": "en_US",
   "description": "__MSG_addonDescription__",
-  "version": "0.1",
-  "homepage_url": "http://www.mozilla.com/",
+  "author": "Thomas Wisniewski <twisniewski@mozilla.org>",
+  "version": "1.0.0",
+  "homepage_url": "https://github.com/webcompat/tinker-tester-developer-spy",
   "applications": {
     "gecko": {
-      "id": "@TinkerTesterDeveloperSpy",
+      "id": "tinker-tester-developer-spy@webcompat.com",
       "strict_min_version": "59.0a1"
     }
   },
