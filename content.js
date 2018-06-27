@@ -265,7 +265,7 @@ function pageScript(Config, Messages) {
         });
       }
 
-      if (listeners.includes(listener)) {
+      if (!listeners.includes(listener)) {
         listeners.push(listener);
       }
     }
@@ -484,7 +484,7 @@ function pageScript(Config, Messages) {
         };
       }
       const listeners = PropertyNameHooks[prop].listeners;
-      if (listeners.includes(listener)) {
+      if (!listeners.includes(listener)) {
         listeners.push(listener);
       }
     }
