@@ -136,8 +136,16 @@ const setURLReplacements = (function() {
 
   function findReplacement(url) {
     for (const replacement of replacements) {
-      if (url.match(replacement.regex)) {
-        return replacement;
+      const match = url.match(replacement.regex);
+      if (match) {
+        if (match.length > 1) {
+          return {
+            type: replacement.type,
+            replacement: url.replace(replacement.regex, replacement.replacement),
+          };
+        } else {
+          return replacement;
+        }
       }
     }
     return {};
@@ -182,26 +190,25 @@ const setURLReplacements = (function() {
       const filter = browser.webRequest.filterResponseData(details.requestId);
       if (type === "redirectURL") {
         filter.onstart = event => {
-          const xhr = new XMLHttpRequest();
-          xhr.open("GET", `${replacement}#${Date.now()}`);
-          xhr.responseType = "arraybuffer";
-          xhr.onerror = err => {
+          const onerror = err => {
             const msg = browser.i18n.getMessage("bgExceptionOverridingURL", [details.url, replacement]);
             console.error(msg, err);
             filter.write(new Uint8Array(new TextEncoder("utf-8").
               encode(`${msg}\n${err.message || ""}\n${err.stack || ""}`)));
             filter.close();
           };
-          xhr.onload = () => {
-            if (!xhr.status || xhr.status >= 400) {
-              console.error(browser.i18n.getMessage("bgFailureOverridingURL", [xhr.status, details.url, replacement]));
+          fetch(replacement, {cache: "no-store"}).then(response => {
+            if (!response.ok) {
+              console.error(browser.i18n.getMessage("bgFailureOverridingURL", [response.status, details.url, replacement]));
+              filter.close();
             } else {
-              filter.write(xhr.response);
-              console.info(browser.i18n.getMessage("bgOverridingURL", [details.url, replacement]));
+              return response.arrayBuffer().then(buffer => {
+                filter.write(buffer);
+                filter.close();
+                console.info(browser.i18n.getMessage("bgOverridingURL", [details.url, replacement]));
+              }).catch(onerror);
             }
-            filter.close();
-          };
-          xhr.send();
+          }).catch(onerror);
         };
       } else if (type === "rawText") {
         filter.onstart = event => {

@@ -48,13 +48,6 @@ function onActiveTabConfigUpdated(tabConfig) {
   if (requestOverridesConfig.enabled) {
     for (const [type, valuesForType] of Object.entries(requestOverridesConfig.values)) {
       for (const [name, value] of Object.entries(valuesForType)) {
-        if (type === "redirectURL") {
-          try {
-            new URL(value);
-          } catch (_) {
-            continue;
-          }
-        }
         urlReplacements.push({regex: new RegExp(name), type, replacement: value});
       }
     }

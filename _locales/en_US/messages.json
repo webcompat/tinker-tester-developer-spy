@@ -135,7 +135,7 @@
   },
 
   "noteOverrideNetworkRequests": {
-    "message": "For overrides to take effect, you may need to hard-refresh the page (press ctrl/cmd-shift-r, or shift-click or long-tap the refresh button)"
+    "message": "File URLs are not currently supported. For overrides to take effect, you may need to hard-refresh the page (press ctrl/cmd-shift-r, or shift-click or long-tap the refresh button)."
   },
 
   "optionElementNames": {

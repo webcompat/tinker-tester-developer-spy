@@ -17,7 +17,7 @@ window.ScriptOverrideHooks = {
       setting: browser.i18n.getMessage("optionURLRegex"),
       value: browser.i18n.getMessage("optionURLRedirect"),
       types: {
-        redirectURL: {label: browser.i18n.getMessage("typeOverrideNetworkRequestRedirectURL"), type: "url"},
+        redirectURL: {label: browser.i18n.getMessage("typeOverrideNetworkRequestRedirectURL")},
         rawText: {label: browser.i18n.getMessage("typeOverrideNetworkRequestRawText")},
       },
     },
