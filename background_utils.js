@@ -80,6 +80,19 @@ const maybeActivateCORSBypassListener = (function() {
     "access-control-allow-methods": "CONNECT, DELETE, GET, HEAD, OPTIONS, POST, PUT",
     "content-security-policy": "upgrade-insecure-requests",
     "content-security-policy-report-only": "upgrade-insecure-requests",
+    "child-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "connect-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "default-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "font-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "frame-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "img-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "manifest-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "media-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "object-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "prefetch-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "script-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "style-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
+    "worker-src": "default-src * 'unsafe-inline' 'unsafe-eval'",
   };
 
   const CORSBypassListener = e => {
