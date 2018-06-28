@@ -977,6 +977,9 @@ function pageScript(Config, Messages) {
           return gConfig[name];
         },
         update: opts => {
+          if (!("enabled" in opts)) {
+            opts.enabled = true;
+          }
           const changes = {};
           changes[name] = opts;
           channel.port1.postMessage(changes);
