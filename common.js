@@ -36,11 +36,11 @@ window.ScriptOverrideHooks = {
   "OverrideLanguages": {
     options: {languages: browser.i18n.getMessage("optionLanguages")},
   },
-  "ListenForElementCreation": {
+  "ElementCreation": {
     options: {names: browser.i18n.getMessage("optionElementNames")},
     callbacks: {onCreated: browser.i18n.getMessage("callbackOnCreated")},
   },
-  "ListenForEvents": {
+  "DOMEvents": {
     options: {types: browser.i18n.getMessage("optionEventTypes"),
               selector: browser.i18n.getMessage("optionOnlyIfTargetMatches")},
     callbacks: {onAdded: browser.i18n.getMessage("callbackOnListenerAdded"),
@@ -58,7 +58,7 @@ window.ScriptOverrideHooks = {
       "WheelEvent.prototype.preventDefault",
     ],
   },
-  "ListenForStyleProperties": {
+  "StyleProperties": {
     options: {properties: browser.i18n.getMessage("optionStylePropertiesToMonitor"),
               selector: browser.i18n.getMessage("optionOnlyIfElementMatches"),
               onlyValues: browser.i18n.getMessage("optionOnlyIfValueMatches")},

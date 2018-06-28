@@ -904,13 +904,13 @@ function pageScript(Config, Messages) {
           case "ObserveXHRandFetch":
             hooks[name] = new XHRandFetchObserver();
             break;
-          case "ListenForElementCreation":
+          case "ElementCreation":
             hooks[name] = new ElementCreatedHook();
             break;
-          case "ListenForEvents":
+          case "DOMEvents":
             hooks[name] = new EventListenerHook();
             break;
-          case "ListenForStyleProperties":
+          case "StyleProperties":
             hooks[name] = new StyleListenerHook();
             break;
           case "UserAgentOverrides":

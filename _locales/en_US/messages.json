@@ -66,13 +66,13 @@
   "hookLabelInputsAndLinks": {
     "message": "Inputs and Links"
   },
-  "hookLabelListenForElementCreation": {
+  "hookLabelElementCreation": {
     "message": "Element created"
   },
-  "hookLabelListenForEvents": {
+  "hookLabelDOMEvents": {
     "message": "DOM events"
   },
-  "hookLabelListenForStyleProperties": {
+  "hookLabelStyleProperties": {
     "message": "element.style"
   },
   "hookLabelMediaElements": {
