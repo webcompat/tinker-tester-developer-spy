@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+  <style>
+    table { border-collapse: collapse; margin-left: 1.75em; caption-side: bottom; }
+    td pre { margin: -1em 0 0 0; } /* move up a line since code fragments start with a line break */
+    caption { font-style: italic; white-space:nowrap; margin-bottom: 1em; }
+    h1, h2, h3, th, td { border: 1px solid #ccc; padding: 0.5em; }
+    h1, h2, h3 { border-left: 0; border-right: 0; }
+    h1, h3 { border-top: 0; }
+    h2 { margin-top: 3em; }
+    td { vertical-align: top; }
+    h2, th, pre { background: #fafafa; }
+  </style>
+
+  <h1 style="display: flex; align-items: center">
+    Tinker Tester Developer Spy
+    <img style="margin-left: 0.5em" src="logo.png">
+  </h1>
+
+  <p>An experimental Firefox addon to help diagnose and debug web sites and web apps.</p>
+  <ul>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#consoleAPI">Console API</a></li>
+    <li><a href="#hooks">Hooks</a>
+    <ul>
+      <li><a href="#xhrsAndFetches">XHRs and Fetches</a></li>
+      <li><a href="#overrideNetworkRequests">Override Network Requests</a></li>
+      <li><a href="#overrideRequestHeaders">Override Request Headers</a></li>
+      <li><a href="#overrideLanguages">Override Languages</a></li>
+      <li><a href="#elementCreation">Element Creation</a></li>
+      <li><a href="#elementStyle">element.style</a></li>
+      <li><a href="#detectUASniffing">Detect UA Sniffing</a></li>
+      <li><a href="#spoofUserAgent">Spoof User Agent</a></li>
+      <li><a href="#scrolling">Scrolling</a></li>
+      <li><a href="#documentWrite">document.write</a></li>
+      <li><a href="#inputsAndLinks">Inputs and Links</a></li>
+      <li><a href="#audioVideo">Audio/Video</a></li>
+      <li><a href="#taskScheduling">Task Scheduling</a></li>
+      <li><a href="#shadowDOM">Shadow DOM</a></li>
+      <li><a href="#geolocation">Geolocation</a></li>
+      <li><a href="#functionBindHelper">function.bind helper</a></li>
+      <li><a href="#bypassSiteCORSSettings">Bypass Site CORS Settings</a></li>
+  </ul>
+
+  <h2 id="usage">Usage</h2>
+
+  <p>Firstly a disclaimer: this add-on is <strong>not</strong> meant to be used during general browsing, but only in browser profiles meant for testing web sites. This add-on may cause sites to break entirely, and has features which can cause privacy or even security issues. Use at your own risk.</p>
+
+  <p>This addon works by providing a number of "hooks" which are accessible through a browser action menu, a panel on the developer tools, and via a console API. These hooks allow for logging accesses or changes to various scripting APIs and HTML elements, logging or altering network requests, and spoofing how the browser presents itself. Hooks are tab-specific and temporary to the browsing session.</p>
+
+  <p>To use the GUI, simply click on the browser toolbar icon (or open the devtools panel), then select a hook and customize how and when it ought to trigger. For instance, it is possible to log any PUT XMLHttpRequests or fetches to specific API endpoints, trip the JS debugger when a particular event fires on certain elements, override Geolocation coordinates several times while running a web app, re-write network requests to a given URL to a file on another (perhaps local) server, or even detect when properties that are not supported by the browser are accessed, including removed features like <code>window.components</code> or ones never supported by Firefox such as <code>window.event</code>.</p>
+
+  <table><tr>
+    <th>Browser Toolbar interface</th>
+    <th>Devtools panel interface</th>
+  </tr><tr>
+    <td><img src="browseraction.png"></td>
+    <td><img src="devtools.png"></td>
+  </tr></table>
+
+  <p>Since browser toolbar popups will disappear upon losing focus, the devtools panel can be useful when copy-and-pasting from other applications. However, it does not function in the remote devtools when debugging Android, so a special console API is also provided to help make it possible to control the addon more easily in a remote devtools session while debugging on Firefox for Android.</p>
+
+  <p>Note that hooks are dynamically set or unset, so it is possible to only begin using hooks after getting the site into an interesting state, and disable or alter them while viewing a page. However, it may be necessary to set a hook and hard-reload the page in order for it to be of any practical use (especially to thwart browser caching or for properties that pages tend to check early, such as user-agent spoofs).</p>
+
+  <p>Also bear in mind that hooks are <i>tab-specific</i> &mdash; they will remain applied on the same tab even if you navigate away to another domain. In fact they will remain active on the tab until disabled in the user interface or console API, or the add-on is disabled or browser exited. They do not persist and are not remembered when the browser is restarted.</p>
+
+  <h2 id="consoleAPI">Console API</h2>
+
+  <p>A programmatically-driven console API can be accessed from the developer tools, making it possible to use the remote developer tools to more conveniently set up hooks. However, to prevent its abuse by malicious websites, access to the API must be requested with a secure token that is logged to the console:</p>
+
+  <pre><code>
+    &lt;- TinkerTesterDeveloperSpy API key: 3579031240142907329516953208073795351219
+  </code></pre>
+
+  <p>First request permission to access the API with the most recent key:</p>
+
+  <pre><code>
+    &gt;&gt;Tinker(3579031240142907329516953208073795351219);
+    &lt;- "OK"
+  </code></pre>
+
+  <p>It is necessary to authenticate after navigating to a new domain, for each new tab, and when restarting the addon, but not after simply reloading the page. If the correct token is not passed the first time, it will be necessary to reload the page or switch to another tab and back in order to try again.</p>
+
+  <p>Once authenticated is successful, the API may be used to update specific hooks programmatically:</p>
+
+  <pre><code>
+    &gt;&gt; Tinker("ObserveXHRandFetch").update({onSend: "log stack trace", onlyURLs: "cart.php", onlyMethods: "POST"});
+    &lt;- undefined
+
+    &gt;&gt; Tinker("ObserveXHRandFetch").check();
+    &lt;- Object { onSend: "log stack trace", onlyURLs: "cart.php", onlyMethods: "POST", enabled: true }
+  </code></pre>
+
+  <p>Each hook has its own options which mirror its UI options. They are documented in the Hooks section below.</p>
+
+  <p>Note that hooks are enabled by default when calling <code>update</code>; to disable them it is necessary to specify <code>enabled: false</code>.</p>
+
+  <p>Most hooks have event callbacks like <code>onSend</code>, <code>onGet</code>, or <code>onSet</code>, which generally support these values:</p>
+  <table><tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr><tr>
+    <td>"log stack trace"</td>
+    <td>To log a stack trace in the web console.</td>
+  </tr><tr>
+    <td>"start debugger"</td>
+    <td>Start the debugger at the script location the event occurred.</td>
+  </tr><tr>
+    <td>"ignore"</td>
+    <td>Turn the event into a no-op returning <code>undefined</code>.</td>
+  </tr><tr>
+    <td>"nothing"</td>
+    <td>Do nothing for this event (optional; "nothing" is assumed if a value is not provided).</td>
+  </tr><tr>
+    <td><i>function source code</i></td>
+    <td>Use the return value of whatever this function returns (or whatever the original function returns if it returns <code>undefined</code>).</td>
+  </tr></table>
+
+
+  <h2 id="hooks">Hooks</h2>
+
+  <p>In general, note that hooks are often only useful when set up before a page has already loaded. As such it is useful to set up your hooks, then reload the page in order to ensure that hooks have applied early enough.</p>
+
+  <p>A reference for the specific hooks the add-on makes available now follows, grouped as they are in the user-interface.</p>
+
+  <h3 id="xhrsAndFetches">XHRs and Fetches</h3>
+
+  <p>Detects when network requests are sent by scripts using <code>XMLHttpRequest</code> or <code>fetch</code>.</p>
+
+  <p>Can be restricted to detecting requests using only specific HTTP methods (a case-insensitive, comma-separated list) or sent to specific URLs (a regular expression).</p>
+
+  <table><caption>
+    Starting the debugger on any PUT or DELETE request to a URL containing <code>cart.php</code>
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="xhr_and_fetch.png"></td>
+    <td><pre><code>
+Tinker("ObserveXHRandFetch").update({
+  onlyMethods: "PUT, DELETE",
+  onlyURLs: "cart.php",
+  onSend: "start debugger",
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="overrideNetworkRequests">Override Network Requests</h3>
+
+  <p>Allow re-mapping specific network requests to other destinations or a raw ECMAScript string. Works by matching a list of regular expressions against incoming request URLs, and then replacing the response with either the provided string or the response from the provided URL. Regular expression search-and-replace is also done for both strings and URLs (see below for examples).
+
+  <p>Note that forward slashes need to be double-escaped when using the console API, unlike the GUI. Also note that it is not currently possible to re-map to <code>file://</code> URLs due to security restrictions enforced by extension APIs; local files must be served over HTTP(S).</p>
+
+  <table><caption>
+    Overriding several types of request
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="override_network_requests.png"></td>
+    <td><pre><code>
+Tinker("OverrideNetworkRequests").update({
+  values: {
+    redirectURL: {
+      "(.*)\\.webm": "$1.jpg",
+      "jquery-2.2-min.js": "http://code.jquery.com/jquery-3.3.1.js",
+      "https://x.com/.*?([^/]+)\\.js": "http://localhost/x.com/$1.js",
+    },
+    rawText: {
+      "message-(\\d+).json": '{"timestamp": $1, "value": "test-$1"}'
+    }
+  }
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="overrideRequestHeaders">Override Request Headers</h3>
+
+  <p>Allows overriding the value of HTTP headers sent with all requests. It is possible to always set a header to a specific value regardless of what value it would normally have, or to only override for requests where the header would not normally be sent.</p>
+
+  <table><caption>
+    Overriding HTTP headers
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="override_request_headers.png"></td>
+    <td><pre><code>
+Tinker("OverrideRequestHeaders").update({
+  values: {
+    onlyOverride: {
+      "Origin": "somewhere.com",
+    },
+    alwaysSet: {
+      "X-Testing": "yes",
+    },
+  }
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="overrideLanguages">Override Languages</h3>
+
+  <p>Allows overriding the navigator's language, as far as the website sees it. By specifying the value this hook should sent for the <code>Accept-Language</code> HTTP header value, it will also override the values of the <code>navigator.language</code> and <code>navigator.languages</code> properties which will be visible to scripts (for instance, for the value <code>en-GB,en;q=0.8,sv</code>, it will provide <code>en-US</code> and <code>["en-GB", "en", "sv"]</code>, respectively).</p>
+
+  <table><caption>
+    Overriding the UA language sites will see.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="override_languages.png"></td>
+    <td><pre><code>
+Tinker("OverrideLanguages").update({
+  languages: "en-GB,en;q=0.8,sv"
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="elementCreation">Element Creation</h3>
+
+  <p>Allows logging when the specified DOM element types are being created. This includes various methods such as <code>innerHTML</code> and <code>createNodeNS</code>, and also <code>new Audio()</code>.</p>
+
+  <table><caption>
+    Logging where <code>audio</code> and <code>video</code> elements are being created.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="element_creation.png"></td>
+    <td><pre><code>
+Tinker("ElementCreation").update({
+enabled: false
+  names: "audio, video",
+  onCreated: "log stack trace",
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="domEvents">DOM Events</h3>
+
+  <p>Allows discovery of the addition, removal, or firing of a specified list of event handler types, and potentially only on elements with the given CSS selector.</p>
+
+  <p>Also provides a list of simpler hooks for detecting when sites call <code>dispatchEvent</code>, <code>preventDefault</code> on certain event types, or use the non-standard <code>window.event</code> or <code>event.srcElement</code> properties.</p>
+
+  <table><caption>
+    Discover the event-handlers when a given element is clicked, and also if the page is handling events in complex or non-standard ways.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="dom_events.png"></td>
+    <td><pre><code>
+Tinker("DOMEvents").update({
+  selector: "#newsSection .panel a",
+  types: "mousedown, touchstart, click",
+  onAdded: "log stack trace",
+  onEvent: "start debugger",
+  onRemoved: "nothing",
+  properties: {
+    "Event.prototype.srcElement": "log stack trace",
+    "window.event": "log stack trace",
+  },
+  methods: {
+    "MouseEvent.prototype.preventDefault": "log stack trace",
+  },
+})
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="elementStyle">element.style</h3>
+
+  <p>Allows detecting where and when the specified CSS properties are being altered using the scripting <code>style</code> API. This can be useful for a wide variety of tasks such as determining when elements are shown or hidden, have their <code>transform</code> style changed, or even when a property unsupported by Firefox like <code>zoom</code> or <code>webkitOverflowScrolling</code> is being accessed or altered.</p>
+
+  <table><caption>
+    Trying to discover where a page is hiding and showing a given element.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="element_style.png"></td>
+    <td><pre><code>
+Tinker("StyleProperties").update({
+  onlyValues: "block",
+  properties: "display",
+  selector: ".panel &gt; p",
+  onSet: "log stack trace",
+  onGet: "nothing",
+})
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="detectUASniffing">Detect UA Sniffing</h3>
+
+  <p>Allows detecting when sites are using classic script-based user agent sniffing techniques. This can be very useful for complex sites which often obscure or over-use sniffs such that a simple global search for the method is impractical. This can include properties which Firefox does not actually support.</p>
+
+  <table><caption>
+    Help Detecting UA-sniffing scripts.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="detect_sniffing.png"></td>
+    <td><pre><code>
+Tinker("DetectUAChecks").update({
+  "navigator.appVersion": "log stack trace",
+  "navigator.platform": "log stack trace",
+  "navigator.userAgent": "log stack trace",
+  "navigator.vendor": "log stack trace",
+  "window.components": "start debugger",
+})
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="spoofUserAgent">Spoof User Agent</h3>
+
+  <p>Allows quick UA-spoofing from a set of browser version presets. These spoofs may attempt to spoof more than just the UserAgent string, in order to better mimic the environment of their browser and device.</p>
+
+  <table><caption>
+    Selecting UA-spoofing presets to mimic Chrome on an Android tablet device.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="spoof_ua.png"></td>
+    <td><pre><code>
+Tinker("UserAgentOverrides").update({
+  selected: "uaChromeAndroidTablet"
+})
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="scrolling">Scrolling</h3>
+
+  <p>Enables the detection of many scrolling-related scripting techniques, including detecting programmatic scrolling, mouse wheel event handling, reading element dimensions, and judging whether the page is basing its scrolling behavior on the <code>body</code> or <code>documentElement</code>, rather than using the modern <code>document.scrollingElement</code> property.</p>
+
+  <table><caption>
+    Logging in order to determine how the page is scrolling its view.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="scrolling.png"></td>
+    <td><pre><code>
+Tinker("Scrolling").update({
+  methods: {
+    "Element.prototype.scroll": "log stack trace",
+    "Element.prototype.scrollBy": "log stack trace",
+    "Element.prototype.scrollByNoFlush": "log stack trace",
+    "Element.prototype.scrollIntoView": "log stack trace",
+    "Element.prototype.scrollTo": "log stack trace",
+    "window.scroll": "log stack trace",
+    "window.scrollBy": "log stack trace",
+    "window.scrollTo": "log stack trace",
+  },
+  properties: {
+    "Element.prototype.scrollTop": "log stack trace",
+    "Element.prototype.scrollTopMax": "log stack trace",
+    "Element.prototype.scrollTopMin": "log stack trace",
+    "WheelEvent.prototype.deltaY": "log stack trace",
+    "document.body.scrollTop": "log stack trace",
+    "document.documentElement.scrollTop": "log stack trace",
+    "window.pageYOffset": "log stack trace",
+  }
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="documentWrite">document.write</h3>
+
+  <p>Allows finding or even ignoring calls to <code>document.write</code> and <code>document.writeln</code>, both of which can cause subtle issues which might break pages, sometimes due to third-party ads or other less managed content.</p>
+
+  <table><caption>
+    Ignoring document writes.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="document_write.png"></td>
+    <td><pre><code>
+Tinker("DocumentWrite").update({
+  methods: {
+    "document.write": "ignore",
+    "document.writeln": "ignore",
+  },
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="inputsAndLinks">Inputs and Links</h3>
+
+  <p>Allows detecting when link sources are changed by scripts or they are programmatically clicked, and likewise when checkboxes and radio buttons are programmatically toggled.</p>
+
+  <table><caption>
+    Dealing with basic changes to links and inputs.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="inputs_links.png"></td>
+    <td><pre><code>
+Tinker("InputsAndLinks").update({
+  methods: {
+    "HTMLAnchorElement.prototype.click": "start debugger",
+  },
+  properties: {
+    "HTMLAnchorElement.prototype.href": "log stack trace",
+    "HTMLInputElement.prototype.checked": "log stack trace",
+  },
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="audioVideo">Audio/Video</h3>
+
+  <p>Allows logging when <code>audio</code> or <code>video</code> tags are played, paused, or have their sources changed. Also allows logging when audio elements are specifically created with <code>new Audio()</code>.</p>
+
+  <table><caption>
+    Enabling logging when video tags are played, paused, or change sources.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="audio_video.png"></td>
+    <td><pre><code>
+Tinker("MediaElements").update({
+  methods: {
+    "HTMLVideoElement.prototype.pause": "log stack trace",
+    "HTMLVideoElement.prototype.play": "log stack trace",
+  },
+  properties: {
+    "HTMLVideoElement.prototype.src": "log stack trace",
+  },
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="taskScheduling">Task Scheduling</h3>
+
+  <p>Allows monitoring the use of <code>requestAnimationFrame</code>, <code>setTimeout</code>, <code>setInterval</code>, and attempts to use the unsupported <code>setImmediate</code> call (as well as their related clearing functions).</p>
+
+  <table><caption>
+    Enabling logging of various task-scheduling DOM APIs.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="task_scheduling.png"></td>
+    <td><pre><code>
+Tinker("Scheduling").update({
+  methods: {
+    "window.requestAnimationFrame": "log stack trace",
+    "window.setImmediate": "log stack trace",
+    "window.setInterval": "log stack trace",
+    "window.setTimeout": "log stack trace",
+    "window.clearImmediate": "log stack trace",
+    "window.clearInterval": "log stack trace",
+    "window.clearTimeout": "log stack trace",
+  }
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="shadowDOM">Shadow DOM</h3>
+
+  <p>Allows hooking into Shadow DOM v0 and v1 functions.</p>
+
+  <table><caption>
+    Making shadow DOM v0 a no-op while investigating use of v1.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="shadow_dom.png"></td>
+    <td><pre><code>
+Tinker("ShadowDOM").update({
+  methods: {
+    "Element.prototype.attachShadow": "start debugger",
+    "Element.prototype.createShadowRoot": "ignore",
+    "Element.prototype.detachShadow": "log stack trace",
+  }
+});
+    </code></pre></td>
+  </tr></table>
+
+  <h3 id="geolocation">Geolocation</h3>
+
+  <p>Allows spoofing the UA-presentated Geolocation coordinates. If this value is changed multiple times, sites using the <code>navigator.geolocation.watchPosition</code> API will notice the changes. This could be useful for testing sites, especially using the console API to provide a steady stream of realistic-looking changed values.</p>
+
+  <p>Note: to match Firefox defaults, <code>accuracy</code> will default to <code>1000</code>, <code>heading</code> and <code>speed</code> to <code>NaN</code>,  and other values to <code>0</code>.</p>
+
+  <table><caption>
+    Spoofing the UA's current geolocation coordinates.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="geolocation.png"></td>
+    <td><pre><code>
+Tinker("Geolocation").update({
+  latitude: 30,
+  longitude: 10,
+  accuracy: 10,
+});
+    </code></pre></td>
+  </tr></table>
+
+  <h3 id="functionBindHelper">function.bind helper</h3>
+
+  <p>Sites and apps will sometimes use <code>function.bind</code>, and it can be difficult to determine what the original bound function was, what values it was bound to, or where it has been bound in the source code.</p>
+
+  <p>This hook will add two properties to each bound function, <code>_boundFunction</code> and <code>_boundArguments</code>, and also log a stack trace to the web console whenever a function is being bound. Note that it will miss functions bound before it is first enabled for a given page; it may be necessary to refresh the tab in order to hook into all bound functions.</p>
+
+  <table><caption>
+    Enabling the <code>function.bind</code> helper.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="function_bind.png"></td>
+    <td><pre><code>
+Tinker("FunctionBind").update({
+  enabled: true,
+});
+    </code></pre></td>
+  </tr></table>
+
+  <h3 id="bypassSiteCORSSettings">Bypass Site CORS Settings</h3>
+
+  <p>This is an experimental feature which attempts to bypass CORS by replacing common CORS header values with a set of values which permit as open an environment as possible. This is quite obviously a bad idea outside of quick tests, and it may even break sites entirely. Use sparingly, and with caution.</p>
+
+  <table><caption>
+    Enabling the experimental CORS bypass feature.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="cors_bypass.png"></td>
+    <td><pre><code>
+Tinker("CORSBypass").update({
+  enabled: true,
+});
+    </code></pre></td>
+  </tr></table>
+</html>
