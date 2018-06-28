@@ -184,6 +184,9 @@ window.ScriptOverrideHooks = {
       "window.setInterval",
       "window.requestAnimationFrame",
       "window.setImmediate",
+      "window.clearTimeout",
+      "window.clearInterval",
+      "window.clearImmediate",
     ]
   },
   "ShadowDOM": {
