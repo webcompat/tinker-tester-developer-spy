@@ -227,6 +227,7 @@ function pageScript(Config, Messages) {
 
   const ElementCreatedHook = (function() {
     const listeners = [];
+    let audioConstructorHook;
     let createElementHook;
     let createElementNSHook;
     let innerHTMLHook;
@@ -234,6 +235,13 @@ function pageScript(Config, Messages) {
 
     function registerNameCreationListener(listener) {
       if (!createElementHook) {
+        audioConstructorHook = new PropertyHook("window.Audio", {
+          onCalled: (fn, args) => {
+            for (const listener of listeners || []) {
+              listener._onCreated("audio");
+            }
+          },
+        });
         createElementHook = new PropertyHook("document.createElement", {
           onCalled: (fn, args) => {
             const name = args[0].toLowerCase();
@@ -286,12 +294,16 @@ function pageScript(Config, Messages) {
         }
 
         if (opts.names) {
+          this.names = [];
           this.regexes = {};
           getCommaSeparatedList(opts.names).map(_name => {
             const name = _name.trim().toLowerCase();
             this.regexes[name] = new RegExp("<" + name, "i");
+            this.names.push(name);
             return name;
           });
+        } else {
+          delete this.names;
         }
 
         if ("enabled" in opts) {
@@ -306,6 +318,7 @@ function pageScript(Config, Messages) {
       enable() {
         this.enabled = true;
 
+        audioConstructorHook.enable();
         createElementHook.enable();
         createElementNSHook.enable();
         innerHTMLHook.enable();
