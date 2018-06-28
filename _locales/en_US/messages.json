@@ -67,7 +67,7 @@
     "message": "Inputs and Links"
   },
   "hookLabelElementCreation": {
-    "message": "Element created"
+    "message": "Element Creation"
   },
   "hookLabelDOMEvents": {
     "message": "DOM events"
