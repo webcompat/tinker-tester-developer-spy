@@ -204,7 +204,7 @@ window.ScriptOverrideHooks = {
       speed: browser.i18n.getMessage("optionGeolocationSpeed"),
     },
   },
-  "FunctionBindLogging": {
+  "FunctionBind": {
     type: "checkbox",
   },
   "CORSBypass": {

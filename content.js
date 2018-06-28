@@ -829,8 +829,8 @@ function pageScript(Config, Messages) {
     }
   }
 
-  const FunctionBindLogger = (function() {
-    return class FunctionBindLogger {
+  const FunctionBind = (function() {
+    return class FunctionBind {
       constructor() {
         this.enabled = false;
         const me = this;
@@ -860,6 +860,9 @@ function pageScript(Config, Messages) {
             fNOP.prototype = this.prototype;
           }
           fBound.prototype = new fNOP();
+
+          fBound._boundFunction = fToBind;
+          fBound._boundArguments = aArgs;
 
           return fBound;
         };
@@ -908,8 +911,8 @@ function pageScript(Config, Messages) {
           case "UserAgentOverrides":
             hooks[name] = new SimpleOverrides();
             break;
-          case "FunctionBindLogging":
-            hooks[name] = new FunctionBindLogger();
+          case "FunctionBind":
+            hooks[name] = new FunctionBind();
             break;
           case "Geolocation":
             hooks[name] = new GeolocationHook();

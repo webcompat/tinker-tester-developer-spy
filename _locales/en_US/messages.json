@@ -57,8 +57,8 @@
   "hookLabelDocumentWrite": {
     "message": "document.write"
   },
-  "hookLabelFunctionBindLogging": {
-    "message": "function.bind logging"
+  "hookLabelFunctionBind": {
+    "message": "function.bind helper"
   },
   "hookLabelGeolocation": {
     "message": "Geolocation"
