@@ -70,8 +70,10 @@ function onActiveTabConfigUpdated(tabConfig) {
   const requestHeaderOverridesConfig = tabConfig && tabConfig.OverrideRequestHeaders;
   if (requestHeaderOverridesConfig && requestHeaderOverridesConfig.enabled) {
     for (const [type, valuesForType] of Object.entries(requestHeaderOverridesConfig.values)) {
-      for (const [name, value] of Object.entries(valuesForType)) {
-        requestHeaderOverrides[type][name] = value;
+      if (["alwaysSet", "onlyOverride"].includes(type)) {
+        for (const [name, value] of Object.entries(valuesForType)) {
+          requestHeaderOverrides[type][name] = value;
+        }
       }
     }
   }
