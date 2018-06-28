@@ -206,7 +206,10 @@ function pageScript(Config, Messages) {
         };
         if (!oldprop || oldprop.writable) {
           newprop.set = function(val) {
-            oldprop.value = me.onSetter(this, me.wrapValue(val));
+            const newValue = me.onSetter(this, me.wrapValue(val));
+            if (oldprop) {
+              oldprop.value = newValue;
+            }
           };
         }
       }
