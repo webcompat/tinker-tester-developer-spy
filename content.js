@@ -804,10 +804,15 @@ function pageScript(Config, Messages) {
         }));
       }
       for (const [hook, action] of Object.entries(opts.methods || {})) {
+        const onCalled = getActionFor(action) || function(obj, args) {
+          LogTrace(hook, Messages.LogCalledWithArgs, args);
+        };
         this.hooks.push(new PropertyHook(hook, {
-          onCalled: getActionFor(action) || function(obj, args) {
-            LogTrace(hook, Messages.LogCalledWithArgs, args);
-          }
+          onGetter: function(obj, fn) {
+            // If the method didn't originally exist, just return our hook
+            return fn || onCalled;
+          },
+          onCalled,
         }));
       }
 
