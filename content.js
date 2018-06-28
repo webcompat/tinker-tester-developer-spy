@@ -925,6 +925,7 @@ function pageScript(Config, Messages) {
           case "OverrideLanguages":
             hooks[name] = new LanguagesHook();
             break;
+          case "DetectUAChecks":
           case "Scrolling":
           case "DocumentWrite":
           case "InputsAndLinks":
