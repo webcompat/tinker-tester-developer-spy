@@ -353,17 +353,23 @@ function pageScript(Config, Messages) {
     const oldAEL = EventTarget.prototype.addEventListener;
     const oldREL = EventTarget.prototype.removeEventListener;
 
+    const registrations = {};
+
     EventTarget.prototype.addEventListener = function() {
       const elem = this;
       const type = arguments[0];
       const fn = arguments[1];
-      if (!fn || fn.__innerHandler) {
-        return; // already added, or no handler
-      }
+      const options = arguments[2];
       for (const hook of hooks) {
-        hook._onAdded(type, elem, fn);
+        hook._onAdded(type, elem, fn, options);
       }
-      fn.__innerHandler = function(event) {
+      if (!fn) { // no handler, so this call will fizzle anyway
+        return undefined;
+      }
+      if (!(type in registrations)) {
+        registrations[type] = new WeakMap();
+      }
+      const replacementHandler = function(event) {
         let stopEvent = false;
         for (const hook of hooks) {
           if (hook._onEvent(event) === true) {
@@ -375,19 +381,24 @@ function pageScript(Config, Messages) {
         }
         return undefined;
       };
-      oldAEL.call(this, arguments[0], fn.__innerHandler, arguments[1]);
+      oldAEL.call(this, arguments[0], replacementHandler, options);
+      if (!registrations[type].has(fn)) {
+        registrations[type].set(fn, replacementHandler);
+      }
     };
 
     EventTarget.prototype.removeEventListener = function() {
       const elem = this;
       const type = arguments[0];
       const fn = arguments[1];
-      if (fn && fn.__innerHandler) {
+      const options = arguments[2];
+      if (fn && registrations[type] && registrations[type].has(fn)) {
+        const replacementHandler = registrations[type].get(fn);
         for (const hook of hooks) {
-          hook._onRemoved(type, elem, fn.__innerHandler);
+          hook._onRemoved(type, elem, replacementHandler);
         }
-        oldREL.call(this, arguments[0], fn.__innerHandler, arguments[1]);
-        delete fn.__innerHandler;
+        oldREL.call(this, arguments[0], replacementHandler, options);
+        registrations[type].delete(fn);
       } else {
         oldREL.apply(this, arguments);
       }
@@ -459,12 +470,14 @@ function pageScript(Config, Messages) {
   }());
 
   const StyleListenerHook = (function() {
+    const relatedElementForPropsObj = new WeakMap();
+
     new PropertyHook(
       "HTMLElement.prototype.style",
       {
         enabled: true,
         onGetter: (element, css2Properties) => {
-          css2Properties.__relatedElement = element;
+          relatedElementForPropsObj.set(css2Properties, element);
           return css2Properties;
         }
       }
@@ -480,17 +493,19 @@ function pageScript(Config, Messages) {
             {
               enabled: true,
               onGetter: (obj, value) => {
-                if (obj.__relatedElement) {
+                if (relatedElementForPropsObj.has(obj)) {
+                  const element = relatedElementForPropsObj.get(obj);
                   for (const listener of PropertyNameHooks[prop].listeners || []) {
-                    value = listener._onGet(prop, obj.__relatedElement, value);
+                    value = listener._onGet(prop, element, value);
                   }
                 }
                 return value;
               },
               onSetter: (obj, newValue) => {
-                if (obj.__relatedElement) {
+                if (relatedElementForPropsObj.has(obj)) {
+                  const element = relatedElementForPropsObj.get(obj);
                   for (const listener of PropertyNameHooks[prop].listeners || []) {
-                    newValue = listener._onSet(prop, obj.__relatedElement, newValue);
+                    newValue = listener._onSet(prop, element , newValue);
                   }
                 }
                 return newValue;
@@ -574,12 +589,14 @@ function pageScript(Config, Messages) {
         }
       );
 
+      const openedXHRArgs = new WeakMap();
+
       // Save the method and URL on the XHR objects when opened (for the send hook's use)
       this.openXHRHook = new PropertyHook(
         "XMLHttpRequest.prototype.open",
         {
           onCalled: (obj, args) => {
-            this.__lastOpenArgs = args;
+            openedXHRArgs.set(this, args);
           },
         }
       );
@@ -588,12 +605,13 @@ function pageScript(Config, Messages) {
         "XMLHttpRequest.prototype.send",
         {
           onCalled: (obj, args) => {
-            const method = (this.__lastOpenArgs[0] || "get").toLowerCase();
-            const url = new URL(this.__lastOpenArgs[1] || "", location).href.toLowerCase();
+            const openArgs = openedXHRArgs.get(this);
+            const method = (openArgs[0] || "get").toLowerCase();
+            const url = new URL(openArgs[1] || "", location).href.toLowerCase();
             if (this.onSend &&
                 (!this.onlyMethods || this.onlyMethods.includes(method)) &&
                 (!this.onlyURLs || url.match(this.onlyURLs))) {
-              this.onSend("XHR sent", this.__lastOpenArgs);
+              this.onSend("XHR sent", openArgs);
             }
           },
         }
