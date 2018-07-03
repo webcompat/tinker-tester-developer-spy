@@ -14,8 +14,9 @@ window.Messages = {
   apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
   apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
   LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
-  LogElementAdded: browser.i18n.getMessage("logElementAdded"),
   LogElementCreated: browser.i18n.getMessage("logElementCreated"),
+  LogElementDetected: browser.i18n.getMessage("logElementDetected"),
+  LogElementLost: browser.i18n.getMessage("logElementLost"),
   LogListenerAddedOn: browser.i18n.getMessage("logListenerAddedOn"),
   LogListenerRemovedFrom: browser.i18n.getMessage("logListenerRemovedFrom"),
   LogEventFiredOn: browser.i18n.getMessage("logEventFiredOn"),
@@ -349,13 +350,39 @@ function pageScript(Config, Messages) {
     };
   }());
 
-  class ElementAddedHook {
+  class ElementDetectionHook {
     constructor() {
       this.observer = new MutationObserver(mutations => {
         for (const mutation of mutations) {
-          for (const node of mutation.addedNodes) {
-            if (node.matches && node.matches(this.selector)) {
-              this.onAdded(node);
+          if ("addedNodes" in mutation) {
+            for (const node of mutation.addedNodes) {
+              if (node.matches && node.matches(this.selector)) {
+                this._currentlyMatchingNodes.add(node);
+                this.onDetected(node);
+              }
+            }
+          }
+          if ("removedNodes" in mutation) {
+            for (const node of mutation.removedNodes) {
+              if (node.matches && this._currentlyMatchingNodes.has(node)) {
+                this._currentlyMatchingNodes.delete(node);
+                this.onLost(node, mutation.attributeName, mutation.oldValue);
+              }
+            }
+          }
+          if ("attributes") {
+            const node = mutation.target;
+            if (node.matches) {
+              const currentlyMatches = this._currentlyMatchingNodes.has(node);
+              if (node.matches(this.selector)) {
+                if (!currentlyMatches) {
+                  this._currentlyMatchingNodes.add(node);
+                  this.onDetected(node, mutation.attributeName, mutation.oldValue);
+                }
+              } else if (currentlyMatches) {
+                this._currentlyMatchingNodes.delete(node);
+                this.onLost(node, mutation.attributeName, mutation.oldValue);
+              }
             }
           }
         }
@@ -366,21 +393,48 @@ function pageScript(Config, Messages) {
       if ("enabled" in opts && !opts.enabled) {
         this.disable();
       }
+      const shouldEnable = "enabled" in opts && opts.enabled;
       if ("selector" in opts) {
         this.selector = opts.selector;
+        if (shouldEnable) {
+          this._findCurrentlyMatchingNodes();
+        }
       }
-      if ("onAdded" in opts) {
-        this.onAdded = getActionFor(opts.onAdded) || function(type, elem) {
-          LogTrace(type, Messages.LogElementAdded, elem);
-        };
+      if ("onDetected" in opts) {
+        if (opts.onDetected) {
+          this.onDetected = getActionFor(opts.onDetected) || function(elem) {
+            LogTrace(Messages.LogElementDetected, elem);
+          };
+        } else {
+          delete this.onDetected;
+        }
       }
-      if ("enabled" in opts && opts.enabled) {
+      if ("onLost" in opts) {
+        if (opts.onLost) {
+          this.onLost = getActionFor(opts.onLost) || function(elem, changed, oldValue) {
+            LogTrace(Messages.LogElementLost, elem, changed, oldValue);
+          };
+        } else {
+          delete this.onLost;
+        }
+      }
+      if (shouldEnable) {
         this.enable();
       }
     }
 
+    _findCurrentlyMatchingNodes() {
+      const matches = this._currentlyMatchingNodes = new WeakSet();
+      document.querySelectorAll(this.selector).forEach(node => {
+        matches.add(node);
+      });
+    }
+
     enable() {
+      this._findCurrentlyMatchingNodes();
       this.observer.observe(document.documentElement, {
+        attributes: true,
+        attributeOldValue: true,
         childList: true,
         subtree: true,
       });
@@ -984,8 +1038,8 @@ function pageScript(Config, Messages) {
           case "ElementCreation":
             hooks[name] = new ElementCreatedHook();
             break;
-          case "ElementAddition":
-            hooks[name] = new ElementAddedHook();
+          case "ElementDetection":
+            hooks[name] = new ElementDetectionHook();
             break;
           case "DOMEvents":
             hooks[name] = new EventListenerHook();

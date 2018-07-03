@@ -2,7 +2,7 @@
 <html>
   <style>
     table { border-collapse: collapse; margin-left: 1.75em; caption-side: bottom; }
-    td pre { margin: -1em 0 0 0; } /* move up a line since code fragments start with a line break */
+    td pre { margin: -1em 0 0 0; background: transparent; } /* move up a line since code fragments start with a line break */
     caption { font-style: italic; white-space:nowrap; margin-bottom: 1em; }
     h1, h2, h3, th, td { border: 1px solid #ccc; padding: 0.5em; }
     h1, h2, h3 { border-left: 0; border-right: 0; }
@@ -28,7 +28,7 @@
       <li><a href="#overrideRequestHeaders">Override Request Headers</a></li>
       <li><a href="#overrideLanguages">Override Languages</a></li>
       <li><a href="#elementCreation">Element Creation</a></li>
-      <li><a href="#elementAddition">Element Addition</a></li>
+      <li><a href="#elementDetection">Element Detection</a></li>
       <li><a href="#elementStyle">element.style</a></li>
       <li><a href="#detectUASniffing">Detect UA Sniffing</a></li>
       <li><a href="#spoofUserAgent">Spoof User Agent</a></li>
@@ -242,21 +242,22 @@ Tinker("ElementCreation").update({
   </tr></table>
 
 
-  <h3 id="elementAddition">Element Addition</h3>
+  <h3 id="elementDetection">Element Detection</h3>
 
-  <p>Allows logging when elements with the specified CSS selector have been added to the document. This includes various methods such as <code>innerHTML</code> and <code>appendChild</code> and even while the document is loading.</p>
+  <p>Allows logging when elements in the DOM suddenly match the specified CSS selector, or stop matching it. For instance, if an element is added to, removed from, or moved around in the DOM, its attributes or JS properties change, or any other node involved in the CSS selector suddenly makes the selector match (or stop matching). This includes nodes being added while the page naturally loads.</p>
 
   <table><caption>
-    Logging when a specific element is being added to the document.
+    Logging when a desired element appears or disappears from the DOM.
   </caption><tr>
     <th>User-interface</th>
     <th>Console API</th>
   </tr><tr>
-    <td><img src="element_addition.png"></td>
+    <td><img src="element_detection.png"></td>
     <td><pre><code>
-Tinker("ElementAddition").update({
+Tinker("ElementDetection").update({
   selector: "#news > .panel > a[href='#today']",
-  onCreated: "log stack trace",
+  onDetected: "log stack trace",
+  onLost: "log stack trace",
 });
     </code></pre></td>
   </tr></table>

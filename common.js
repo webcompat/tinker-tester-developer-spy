@@ -40,9 +40,10 @@ window.ScriptOverrideHooks = {
     options: {names: browser.i18n.getMessage("optionElementNames")},
     callbacks: {onCreated: browser.i18n.getMessage("callbackOnCreated")},
   },
-  "ElementAddition": {
+  "ElementDetection": {
     options: {selector: browser.i18n.getMessage("optionElementSelector")},
-    callbacks: {onAdded: browser.i18n.getMessage("callbackOnAdded")},
+    callbacks: {onDetected: browser.i18n.getMessage("callbackOnDetected"),
+                onLost: browser.i18n.getMessage("callbackOnLost")},
   },
   "DOMEvents": {
     options: {types: browser.i18n.getMessage("optionEventTypes"),

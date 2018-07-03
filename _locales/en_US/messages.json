@@ -26,11 +26,14 @@
     "message": "Overriding network request to $1 with $2"
   },
 
-  "callbackOnAdded": {
-    "message": "On Added"
-  },
   "callbackOnCreated": {
     "message": "On Created"
+  },
+  "callbackOnDetected": {
+    "message": "On Detected"
+  },
+  "callbackOnLost": {
+    "message": "On Lost"
   },
   "callbackOnEventFired": {
     "message": "On Event Fired"
@@ -69,11 +72,11 @@
   "hookLabelInputsAndLinks": {
     "message": "Inputs and Links"
   },
-  "hookLabelElementAddition": {
-    "message": "Element Addition"
-  },
   "hookLabelElementCreation": {
     "message": "Element Creation"
+  },
+  "hookLabelElementDetection": {
+    "message": "Element Detection"
   },
   "hookLabelDOMEvents": {
     "message": "DOM events"
@@ -115,11 +118,14 @@
   "logCalledWithArgs": {
     "message": "called with args"
   },
-  "logElementAdded": {
-    "message": "element added"
-  },
   "logElementCreated": {
     "message": "element created"
+  },
+  "logElementDetected": {
+    "message": "element detected"
+  },
+  "logElementLost": {
+    "message": "element lost"
   },
   "logEventFiredOn": {
     "message": "fired on"
