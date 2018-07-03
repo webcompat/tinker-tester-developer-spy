@@ -442,6 +442,7 @@ function pageScript(Config, Messages) {
 
     disable() {
       this.observer.disconnect();
+      this._currentlyMatchingNodes = new WeakSet();
     }
   };
 
