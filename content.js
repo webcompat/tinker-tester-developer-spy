@@ -14,6 +14,7 @@ window.Messages = {
   apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
   apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
   LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
+  LogElementAdded: browser.i18n.getMessage("logElementAdded"),
   LogElementCreated: browser.i18n.getMessage("logElementCreated"),
   LogListenerAddedOn: browser.i18n.getMessage("logListenerAddedOn"),
   LogListenerRemovedFrom: browser.i18n.getMessage("logListenerRemovedFrom"),
@@ -347,6 +348,48 @@ function pageScript(Config, Messages) {
       }
     };
   }());
+
+  class ElementAddedHook {
+    constructor() {
+      this.observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node.matches && node.matches(this.selector)) {
+              this.onAdded(node);
+            }
+          }
+        }
+      });
+    }
+
+    setOptions(opts) {
+      if ("enabled" in opts && !opts.enabled) {
+        this.disable();
+      }
+      if ("selector" in opts) {
+        this.selector = opts.selector;
+      }
+      if ("onAdded" in opts) {
+        this.onAdded = getActionFor(opts.onAdded) || function(type, elem) {
+          LogTrace(type, Messages.LogElementAdded, elem);
+        };
+      }
+      if ("enabled" in opts && opts.enabled) {
+        this.enable();
+      }
+    }
+
+    enable() {
+      this.observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    disable() {
+      this.observer.disconnect();
+    }
+  };
 
   const EventListenerHook = (function() {
     const hooks = [];
@@ -940,6 +983,9 @@ function pageScript(Config, Messages) {
             break;
           case "ElementCreation":
             hooks[name] = new ElementCreatedHook();
+            break;
+          case "ElementAddition":
+            hooks[name] = new ElementAddedHook();
             break;
           case "DOMEvents":
             hooks[name] = new EventListenerHook();

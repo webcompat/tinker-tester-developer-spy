@@ -28,6 +28,7 @@
       <li><a href="#overrideRequestHeaders">Override Request Headers</a></li>
       <li><a href="#overrideLanguages">Override Languages</a></li>
       <li><a href="#elementCreation">Element Creation</a></li>
+      <li><a href="#elementAddition">Element Addition</a></li>
       <li><a href="#elementStyle">element.style</a></li>
       <li><a href="#detectUASniffing">Detect UA Sniffing</a></li>
       <li><a href="#spoofUserAgent">Spoof User Agent</a></li>
@@ -223,7 +224,7 @@ Tinker("OverrideLanguages").update({
 
   <h3 id="elementCreation">Element Creation</h3>
 
-  <p>Allows logging when the specified DOM element types are being created. This includes various methods such as <code>innerHTML</code> and <code>createNodeNS</code>, and also <code>new Audio()</code>.</p>
+  <p>Allows logging whenever DOM elements with the specified node names are created (whether or not they are also being added to the document). This includes various methods such as <code>innerHTML</code> and <code>createNodeNS</code>, and also <code>new Audio()</code>.</p>
 
   <table><caption>
     Logging where <code>audio</code> and <code>video</code> elements are being created.
@@ -234,8 +235,27 @@ Tinker("OverrideLanguages").update({
     <td><img src="element_creation.png"></td>
     <td><pre><code>
 Tinker("ElementCreation").update({
-enabled: false
   names: "audio, video",
+  onCreated: "log stack trace",
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="elementAddition">Element Addition</h3>
+
+  <p>Allows logging when elements with the specified CSS selector have been added to the document. This includes various methods such as <code>innerHTML</code> and <code>appendChild</code> and even while the document is loading.</p>
+
+  <table><caption>
+    Logging when a specific element is being added to the document.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="element_addition.png"></td>
+    <td><pre><code>
+Tinker("ElementAddition").update({
+  selector: "#news > .panel > a[href='#today']",
   onCreated: "log stack trace",
 });
     </code></pre></td>

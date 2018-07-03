@@ -26,6 +26,9 @@
     "message": "Overriding network request to $1 with $2"
   },
 
+  "callbackOnAdded": {
+    "message": "On Added"
+  },
   "callbackOnCreated": {
     "message": "On Created"
   },
@@ -65,6 +68,9 @@
   },
   "hookLabelInputsAndLinks": {
     "message": "Inputs and Links"
+  },
+  "hookLabelElementAddition": {
+    "message": "Element Addition"
   },
   "hookLabelElementCreation": {
     "message": "Element Creation"
@@ -109,6 +115,9 @@
   "logCalledWithArgs": {
     "message": "called with args"
   },
+  "logElementAdded": {
+    "message": "element added"
+  },
   "logElementCreated": {
     "message": "element created"
   },
@@ -140,6 +149,9 @@
 
   "optionElementNames": {
     "message": "Element names"
+  },
+  "optionElementSelector": {
+    "message": "CSS selector to match"
   },
   "optionEventTypes": {
     "message": "Event types"
