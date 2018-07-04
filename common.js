@@ -135,7 +135,7 @@ window.ScriptOverrideHooks = {
       "document.documentElement.scrollTop",
       "document.body.scrollLeft",
       "document.body.scrollTop",
-      "document.scrollingElement",
+      "Document.prototype.scrollingElement",
       "Element.prototype.scrollLeft",
       "Element.prototype.scrollLeftMin",
       "Element.prototype.scrollLeftMax",

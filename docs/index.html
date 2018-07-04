@@ -110,6 +110,9 @@
     <td>"ignore"</td>
     <td>Turn the event into a no-op returning <code>undefined</code>.</td>
   </tr><tr>
+    <td>"hide"</td>
+    <td>Try to hide the property/method entirely, as though it does not exist.</td>
+  </tr><tr>
     <td>"nothing"</td>
     <td>Do nothing for this event (optional; "nothing" is assumed if a value is not provided).</td>
   </tr><tr>
@@ -501,7 +504,7 @@ Tinker("Scheduling").update({
   <p>Allows hooking into Shadow DOM v0 and v1 functions.</p>
 
   <table><caption>
-    Making shadow DOM v0 a no-op while investigating use of v1.
+    Disable shadow DOM v1, and check if shadow DOM v0 is used instead.
   </caption><tr>
     <th>User-interface</th>
     <th>Console API</th>
@@ -510,9 +513,9 @@ Tinker("Scheduling").update({
     <td><pre><code>
 Tinker("ShadowDOM").update({
   methods: {
-    "Element.prototype.attachShadow": "start debugger",
-    "Element.prototype.createShadowRoot": "ignore",
-    "Element.prototype.detachShadow": "log stack trace",
+    "Element.prototype.attachShadow": "hide",
+    "Element.prototype.createShadowRoot": "log stack trace",
+    "Element.prototype.detachShadow": "hide",
   }
 });
     </code></pre></td>

@@ -232,6 +232,9 @@
   "popupDoNothing": {
     "message": "Do nothing"
   },
+  "popupHide": {
+    "message": "Hide"
+  },
   "popupIgnore": {
     "message": "Ignore"
   },

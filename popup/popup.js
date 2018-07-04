@@ -18,6 +18,7 @@ const Messages = {
   DoNothing: browser.i18n.getMessage("popupDoNothing"),
   LogStackTrace: browser.i18n.getMessage("popupLogStackTrace"),
   StartDebugger: browser.i18n.getMessage("popupStartDebugger"),
+  Hide: browser.i18n.getMessage("popupHide"),
   Ignore: browser.i18n.getMessage("popupIgnore"),
 };
 
@@ -271,7 +272,8 @@ function removeUnsetButton(li) {
   }
 }
 
-function addSelectActionCell(name, tr, initialValue, addIgnoreOption = false) {
+function addSelectActionCell(name, tr, initialValue, addIgnoreOption = false,
+                             addHideOption = false) {
   const td = document.createElement("td");
   tr.appendChild(td);
   const sel = document.createElement("select");
@@ -309,6 +311,16 @@ function addSelectActionCell(name, tr, initialValue, addIgnoreOption = false) {
       opt.setAttribute("selected", true);
     }
     opt.appendChild(document.createTextNode(Messages.Ignore));
+    sel.appendChild(opt);
+  }
+
+  if (addHideOption) {
+    opt = document.createElement("option");
+    opt.setAttribute("value", "hide");
+    if (initialValue === "hide") {
+      opt.setAttribute("selected", true);
+    }
+    opt.appendChild(document.createTextNode(Messages.Hide));
     sel.appendChild(opt);
   }
 
@@ -476,7 +488,7 @@ function redrawDetails(option) {
       td.appendChild(document.createTextNode(name + "()"));
 
       const config = (optConfig.methods || {})[name];
-      const sel = addSelectActionCell(name, tr, config, true);
+      const sel = addSelectActionCell(name, tr, config, true, true);
       sel.setAttribute("data-type", "method");
     }
     for (const name of props) {
@@ -488,7 +500,7 @@ function redrawDetails(option) {
       td.appendChild(document.createTextNode(name));
 
       const config = (optConfig.properties || {})[name];
-      const sel = addSelectActionCell(name, tr, config);
+      const sel = addSelectActionCell(name, tr, config, false, true);
       sel.setAttribute("data-type", "property");
     }
   }

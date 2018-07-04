@@ -219,6 +219,42 @@ function pageScript(Config, Messages) {
     }
   }
 
+  class DisableHook extends PropertyHook {
+    enable() {
+      if (this.revertPoint) {
+        return; // already disabling the property
+      }
+
+      let parentObj = window;
+      let index = 0;
+      const count = this.path.length;
+      while (index < count - 1) {
+        const name = this.path[index++];
+        if (parentObj[name]) {
+          parentObj = parentObj[name];
+        } else {
+          // if the property doesn't exist, do nothing.
+          return;
+        }
+      }
+
+      const revertName = this.path[index];
+      const revertProp = this.findProperty(parentObj, revertName);
+      this.revertPoint = [parentObj, revertName, revertProp];
+      // Try deleting outright first.
+      delete parentObj[revertName];
+      // If the value is still in the prototype, then just
+      // obscure ourselves as an undefined value.
+      if (revertName in parentObj) {
+        Object.defineProperty(parentObj, revertName, {
+          configurable: true,
+          enumerable: false,
+          value: undefined,
+        });
+      }
+    }
+  }
+
   function getCommaSeparatedList(str) {
     const vals = str || "";
     if (vals) {
@@ -944,28 +980,37 @@ function pageScript(Config, Messages) {
 
       this.hooks = [];
       for (const [hook, action] of Object.entries(opts.properties || {})) {
-        this.hooks.push(new PropertyHook(hook, {
-          onGetter: getActionFor(action) || function(obj, value) {
-            LogTrace(hook, Messages.LogGetterAccessed, value);
-            return value;
-          },
-          onSetter: getActionFor(action) || function(obj, newValue) {
-            LogTrace(hook, Messages.LogSetterCalled, newValue);
-            return newValue;
-          }
-        }));
+        if (action === "hide") {
+          this.hooks.push(new DisableHook(hook));
+        } else {
+          const hookAction = getActionFor(action);
+          this.hooks.push(new PropertyHook(hook, {
+            onGetter: hookAction || function(obj, value) {
+              LogTrace(hook, Messages.LogGetterAccessed, value);
+              return value;
+            },
+            onSetter: hookAction || function(obj, newValue) {
+              LogTrace(hook, Messages.LogSetterCalled, newValue);
+              return newValue;
+            }
+          }));
+        }
       }
       for (const [hook, action] of Object.entries(opts.methods || {})) {
-        const onCalled = getActionFor(action) || function(obj, args) {
-          LogTrace(hook, Messages.LogCalledWithArgs, args);
-        };
-        this.hooks.push(new PropertyHook(hook, {
-          onGetter: function(obj, fn) {
-            // If the method didn't originally exist, just return our hook
-            return fn || onCalled;
-          },
-          onCalled,
-        }));
+        if (action === "hide") {
+          this.hooks.push(new DisableHook(hook));
+        } else {
+          const onCalled = getActionFor(action) || function(obj, args) {
+            LogTrace(hook, Messages.LogCalledWithArgs, args);
+          };
+          this.hooks.push(new PropertyHook(hook, {
+            onGetter: function(obj, fn) {
+              // If the method didn't originally exist, just return our hook
+              return fn || onCalled;
+            },
+            onCalled,
+          }));
+        }
       }
 
       if (opts.enabled) {
