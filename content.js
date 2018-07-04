@@ -167,7 +167,7 @@ function pageScript(Config, Messages) {
       if (typeof value === "function") {
         const me = this;
         return function() {
-          let retval = me.onCalled(value, arguments);
+          let retval = me.onCalled(value, arguments, this);
           if (retval === undefined) {
             if (new.target) {
               retval = new (Function.prototype.bind.apply(value, arguments));
@@ -232,6 +232,8 @@ function pageScript(Config, Messages) {
     let audioConstructorHook;
     let createElementHook;
     let createElementNSHook;
+    let importNodeHook;
+    let cloneNodeHook;
     let innerHTMLHook;
     let outerHTMLHook;
 
@@ -255,6 +257,22 @@ function pageScript(Config, Messages) {
         createElementNSHook = new PropertyHook("document.createElementNS", {
           onCalled: (fn, args) => {
             const name = args[0].toLowerCase();
+            for (const listener of listeners || []) {
+              listener._onCreated(name);
+            }
+          },
+        });
+        importNodeHook = new PropertyHook("document.importNode", {
+          onCalled: (fn, args, thisObj) => {
+            const name = args[0].nodeName.toLowerCase();
+            for (const listener of listeners || []) {
+              listener._onCreated(name);
+            }
+          },
+        });
+        cloneNodeHook = new PropertyHook("Element.prototype.cloneNode", {
+          onCalled: (fn, args, thisObj) => {
+            const name = thisObj.nodeName.toLowerCase();
             for (const listener of listeners || []) {
               listener._onCreated(name);
             }
@@ -323,6 +341,8 @@ function pageScript(Config, Messages) {
         audioConstructorHook.enable();
         createElementHook.enable();
         createElementNSHook.enable();
+        importNodeHook.enable();
+        cloneNodeHook.enable();
         innerHTMLHook.enable();
         outerHTMLHook.enable();
       }
