@@ -426,7 +426,7 @@ function pageScript(Config, Messages) {
               }
             }
           }
-          if ("attributes") {
+          if ("attributes" in mutation) {
             const node = mutation.target;
             if (node.matches) {
               const currentlyMatches = this._currentlyMatchingNodes.has(node);
@@ -500,7 +500,7 @@ function pageScript(Config, Messages) {
       this.observer.disconnect();
       this._currentlyMatchingNodes = new WeakSet();
     }
-  };
+  }
 
   const EventListenerHook = (function() {
     const hooks = [];
@@ -535,10 +535,11 @@ function pageScript(Config, Messages) {
         }
         return undefined;
       };
-      oldAEL.call(this, arguments[0], replacementHandler, options);
+      const returnValue = oldAEL.call(this, arguments[0], replacementHandler, options);
       if (!registrations[type].has(fn)) {
         registrations[type].set(fn, replacementHandler);
       }
+      return returnValue;
     };
 
     EventTarget.prototype.removeEventListener = function() {
@@ -659,7 +660,7 @@ function pageScript(Config, Messages) {
                 if (relatedElementForPropsObj.has(obj)) {
                   const element = relatedElementForPropsObj.get(obj);
                   for (const listener of PropertyNameHooks[prop].listeners || []) {
-                    newValue = listener._onSet(prop, element , newValue);
+                    newValue = listener._onSet(prop, element, newValue);
                   }
                 }
                 return newValue;
@@ -1004,7 +1005,7 @@ function pageScript(Config, Messages) {
             LogTrace(hook, Messages.LogCalledWithArgs, args);
           };
           this.hooks.push(new PropertyHook(hook, {
-            onGetter: function(obj, fn) {
+            onGetter: (obj, fn) => {
               // If the method didn't originally exist, just return our hook
               return fn || onCalled;
             },

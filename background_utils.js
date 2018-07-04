@@ -156,9 +156,8 @@ const setURLReplacements = (function() {
             type: replacement.type,
             replacement: url.replace(replacement.regex, replacement.replacement),
           };
-        } else {
-          return replacement;
         }
+        return replacement;
       }
     }
     return {};
@@ -221,6 +220,7 @@ const setURLReplacements = (function() {
                 console.info(browser.i18n.getMessage("bgOverridingURL", [details.url, replacement]));
               }).catch(onerror);
             }
+            return undefined;
           }).catch(onerror);
         };
       } else if (type === "rawText") {
