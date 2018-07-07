@@ -1001,8 +1001,8 @@ function pageScript(Config, Messages) {
         if (action === "hide") {
           this.hooks.push(new DisableHook(hook));
         } else {
-          const onCalled = getActionFor(action) || function(obj, args) {
-            LogTrace(hook, Messages.LogCalledWithArgs, args);
+          const onCalled = getActionFor(action) || function(obj, args, thisObj) {
+            LogTrace(hook, thisObj, Messages.LogCalledWithArgs, args);
           };
           this.hooks.push(new PropertyHook(hook, {
             onGetter: (obj, fn) => {
@@ -1108,7 +1108,7 @@ function pageScript(Config, Messages) {
           case "ElementDetection":
             hooks[name] = new ElementDetectionHook();
             break;
-          case "DOMEvents":
+          case "EventListener":
             hooks[name] = new EventListenerHook();
             break;
           case "StyleProperties":
@@ -1127,6 +1127,7 @@ function pageScript(Config, Messages) {
             hooks[name] = new LanguagesHook();
             break;
           case "DetectUAChecks":
+          case "EventFeatures":
           case "Scrolling":
           case "DocumentWrite":
           case "InputsAndLinks":

@@ -45,17 +45,22 @@ window.ScriptOverrideHooks = {
     callbacks: {onDetected: browser.i18n.getMessage("callbackOnDetected"),
                 onLost: browser.i18n.getMessage("callbackOnLost")},
   },
-  "DOMEvents": {
+  "EventListener": {
     options: {types: browser.i18n.getMessage("optionEventTypes"),
               selector: browser.i18n.getMessage("optionOnlyIfTargetMatches")},
     callbacks: {onAdded: browser.i18n.getMessage("callbackOnListenerAdded"),
                 onRemoved: browser.i18n.getMessage("callbackOnListenerRemoved"),
                 onEvent: browser.i18n.getMessage("callbackOnEventFired")},
+  },
+  "EventFeatures": {
     properties: [
       "window.event",
       "Event.prototype.srcElement",
+      "Document.prototype.activeElement",
     ],
     methods: [
+      "HTMLElement.prototype.focus",
+      "HTMLElement.prototype.blur",
       "EventTarget.prototype.dispatchEvent",
       "InputEvent.prototype.preventDefault",
       "KeyboardEvent.prototype.preventDefault",

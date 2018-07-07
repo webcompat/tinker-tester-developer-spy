@@ -29,6 +29,8 @@
       <li><a href="#overrideLanguages">Override Languages</a></li>
       <li><a href="#elementCreation">Element Creation</a></li>
       <li><a href="#elementDetection">Element Detection</a></li>
+      <li><a href="#eventListener">Event Listener</a></li>
+      <li><a href="#eventFeatures">Event Features</a></li>
       <li><a href="#elementStyle">element.style</a></li>
       <li><a href="#detectUASniffing">Detect UA Sniffing</a></li>
       <li><a href="#spoofUserAgent">Spoof User Agent</a></li>
@@ -266,11 +268,32 @@ Tinker("ElementDetection").update({
   </tr></table>
 
 
-  <h3 id="domEvents">DOM Events</h3>
+  <h3 id="eventListener">Event Listener</h3>
 
   <p>Allows discovery of the addition, removal, or firing of a specified list of event handler types, and potentially only on elements with the given CSS selector.</p>
 
-  <p>Also provides a list of simpler hooks for detecting when sites call <code>dispatchEvent</code>, <code>preventDefault</code> on certain event types, or use the non-standard <code>window.event</code> or <code>event.srcElement</code> properties.</p>
+  <table><caption>
+    Log when click, mousedown, or touchstart event-handlers are added to certain elements, and debug whenever one of them fires.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="event_listener.png"></td>
+    <td><pre><code>
+Tinker("EventListener").update({
+  selector: "#newsSection .panel a",
+  types: "mousedown, touchstart, click",
+  onAdded: "log stack trace",
+  onEvent: "start debugger",
+  onRemoved: "nothing",
+})
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="eventFeatures">Event Features</h3>
+
+  <p>Provides hooks for detecting when sites use various event-related script features, such as focusing elements, manually dispatching events, preventing the default action of various event-types, or using <code>window.event</code> or <code>srcElement</code>.</p>
 
   <table><caption>
     Discover the event-handlers when a given element is clicked, and also if the page is handling events in complex or non-standard ways.
@@ -278,20 +301,15 @@ Tinker("ElementDetection").update({
     <th>User-interface</th>
     <th>Console API</th>
   </tr><tr>
-    <td><img src="dom_events.png"></td>
+    <td><img src="event_features.png"></td>
     <td><pre><code>
-Tinker("DOMEvents").update({
-  selector: "#newsSection .panel a",
-  types: "mousedown, touchstart, click",
-  onAdded: "log stack trace",
-  onEvent: "start debugger",
-  onRemoved: "nothing",
+Tinker("EventFeatures").update({
   properties: {
-    "Event.prototype.srcElement": "log stack trace",
-    "window.event": "log stack trace",
+    "Document.prototype.activeElement": "log stack trace",
   },
   methods: {
-    "MouseEvent.prototype.preventDefault": "log stack trace",
+    "HTMLElement.prototype.focus": "log stack trace",
+    "HTMLElement.prototype.blur": "log stack trace",
   },
 })
     </code></pre></td>

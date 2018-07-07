@@ -78,8 +78,11 @@
   "hookLabelElementDetection": {
     "message": "Element Detection"
   },
-  "hookLabelDOMEvents": {
-    "message": "DOM events"
+  "hookLabelEventListener": {
+    "message": "Event Listener"
+  },
+  "hookLabelEventFeatures": {
+    "message": "Event Features"
   },
   "hookLabelStyleProperties": {
     "message": "element.style"
