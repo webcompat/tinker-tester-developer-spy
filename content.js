@@ -531,7 +531,7 @@ function pageScript(Config, Messages) {
           }
         }
         if (!stopEvent) {
-          return fn.apply(this, arguments);
+          return (fn.handleEvent || fn).apply(this, arguments);
         }
         return undefined;
       };
