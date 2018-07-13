@@ -127,13 +127,15 @@
 
   <p>In general, note that hooks are often only useful when set up before a page has already loaded. As such it is useful to set up your hooks, then reload the page in order to ensure that hooks have applied early enough.</p>
 
+  <p id="regex">Note that hooks which can accept a regular expression require that you input the expression in this format: <code>/expression/flags</code> (where the flags can include g, i, m, u, or y). If this format is not matched, then it will be interpreted as a string, not a regular expression. When using regular expressions with the console API, it is important to escape any forward-slashes meant to be part of the regular expression (for instance, <code>"\\d+"</code> rather than <code>\d+</code>).</code>
+
   <p>A reference for the specific hooks the add-on makes available now follows, grouped as they are in the user-interface.</p>
 
   <h3 id="xhrsAndFetches">XHRs and Fetches</h3>
 
   <p>Detects when network requests are sent by scripts using <code>XMLHttpRequest</code> or <code>fetch</code>.</p>
 
-  <p>Can be restricted to detecting requests using only specific HTTP methods (a case-insensitive, comma-separated list) or sent to specific URLs (a regular expression).</p>
+  <p>Can be restricted to detecting requests using only specific HTTP methods (a case-insensitive, comma-separated list or a <a href="#regex">regular expression</a>) or sent to specific URL (or a regular expression matching URLs).</p>
 
   <table><caption>
     Starting the debugger on any PUT or DELETE request to a URL containing <code>cart.php</code>
@@ -154,7 +156,9 @@ Tinker("ObserveXHRandFetch").update({
 
   <h3 id="overrideNetworkRequests">Override Network Requests</h3>
 
-  <p>Allow re-mapping specific network requests to other destinations or a raw ECMAScript string. Works by matching a list of regular expressions against incoming request URLs, and then replacing the response with either the provided string or the response from the provided URL. Regular expression search-and-replace is also done for both strings and URLs (see below for examples).
+  <p>Allow re-mapping specific network requests to other destinations or a raw ECMAScript string. Works by matching each outgoing request's URL against a string or <a href="#regex">regular expression</a>, and changing it to either a given string, or the results of fetching another URL ("redirecting").</p>
+
+  <p>Note that regular expression search-and-replace is also performed (see below for examples). Take care to escape dollar-signs (<code>$</code>) as appropriate. In addition, take care to specify the `g` flag on the regular expression if all matches should be replaced.</p>
 
   <p>Note that forward slashes need to be double-escaped when using the console API, unlike the GUI. Also note that it is not currently possible to re-map to <code>file://</code> URLs due to security restrictions enforced by extension APIs; local files must be served over HTTP(S).</p>
 
@@ -169,12 +173,12 @@ Tinker("ObserveXHRandFetch").update({
 Tinker("OverrideNetworkRequests").update({
   values: {
     redirectURL: {
-      "(.*)\\.webm": "$1.jpg",
+      "/(.*)\\.webm/": "$1.jpg",
       "jquery-2.2-min.js": "http://code.jquery.com/jquery-3.3.1.js",
-      "https://x.com/.*?([^/]+)\\.js": "http://localhost/x.com/$1.js",
+      "/https://x.com/.*?([^/]+)\\.js/": "http://localhost/x.com/$1.js",
     },
     rawText: {
-      "message-(\\d+).json": '{"timestamp": $1, "value": "test-$1"}'
+      "/message-(\\d+).json/": '{"time": $1, "value": "test-$1"}'
     }
   }
 });
@@ -270,7 +274,7 @@ Tinker("ElementDetection").update({
 
   <h3 id="eventListener">Event Listener</h3>
 
-  <p>Allows discovery of the addition, removal, or firing of a specified list of event handler types, and potentially only on elements with the given CSS selector.</p>
+  <p>Allows discovery of the addition, removal, or firing of a specified list of event handler types (or <a href="#regex">regular expression</a>), and potentially only on elements with the given CSS selector.</p>
 
   <table><caption>
     Log when click, mousedown, or touchstart event-handlers are added to certain elements, and debug whenever one of them fires.
@@ -318,7 +322,7 @@ Tinker("EventFeatures").update({
 
   <h3 id="elementStyle">element.style</h3>
 
-  <p>Allows detecting where and when the specified CSS properties are being altered using the scripting <code>style</code> API. This can be useful for a wide variety of tasks such as determining when elements are shown or hidden, have their <code>transform</code> style changed, or even when a property unsupported by Firefox like <code>zoom</code> or <code>webkitOverflowScrolling</code> is being accessed or altered.</p>
+  <p>Allows detecting where and when the specified CSS properties (a list or <a href="#regex">regular expression</a>) are being altered using the scripting <code>style</code> API. Can also be limited to detecting when those properties only have given values (a list or regular expression). This can be useful for a wide variety of tasks such as determining when elements are shown or hidden, have their <code>transform</code> style changed, or even when a property unsupported by Firefox like <code>zoom</code> or <code>webkitOverflowScrolling</code> is being accessed or altered.</p>
 
   <table><caption>
     Trying to discover where a page is hiding and showing a given element.

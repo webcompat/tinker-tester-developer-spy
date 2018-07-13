@@ -262,12 +262,44 @@ function pageScript(Config, Messages) {
     }
   }
 
+  const matchRegex = (function() {
+    const RE = /^\/(.*)\/([gimuy]*)$/;
+    return function getRegex(str) {
+      const isRE = str.match(RE);
+      if (isRE) {
+        try {
+          const RE = new RegExp(isRE[1], isRE[2]);
+          return {
+            match: str => str.match(RE),
+            replace: (str, rep) => str.replace(RE, rep),
+          };
+        } catch (_) { }
+      }
+      return undefined;
+    };
+  })();
+
   function getCommaSeparatedList(str) {
     const vals = str || "";
     if (vals) {
       return vals.split(",").map(v => v.trim());
     }
     return [];
+  }
+
+  function matchCommaSeparatedList(str) {
+    const vals = getCommaSeparatedList(str);
+    return {
+      match: str => vals.includes(str),
+      replace: (str, rep) => rep,
+    };
+  }
+
+  function matchString(str) {
+    return {
+      match: str2 => str === str2,
+      replace: (str, rep) => rep,
+    };
   }
 
   const ElementCreatedHook = (function() {
@@ -576,7 +608,8 @@ function pageScript(Config, Messages) {
         if ("enabled" in opts) {
           this.enabled = !!opts.enabled;
         }
-        this.types = opts.types;
+        this.types = matchRegex(opts.types) ||
+                     matchCommaSeparatedList(opts.types);
         this.selector = opts.selector;
         this.onAdded = getActionFor(opts.onAdded) || function(type, elem, fn) {
           LogTrace(type, Messages.LogListenerAddedOn, elem, fn);
@@ -599,7 +632,7 @@ function pageScript(Config, Messages) {
 
       _onAdded(type, elem, fn) {
         if (this.enabled &&
-            (!this.types || this.types.includes(type)) &&
+            (!this.types || this.types.match(type)) &&
             (!this.selector ||
               (this.selector === "document" && elem instanceof Document) ||
               (this.selector === "window" && elem instanceof Window) ||
@@ -610,7 +643,7 @@ function pageScript(Config, Messages) {
 
       _onRemoved(type, elem, fn) {
         if (this.enabled &&
-            (!this.types || this.types.includes(type)) &&
+            (!this.types || this.types.match(type)) &&
             (!this.selector ||
               (this.selector === "document" && elem instanceof Document) ||
               (this.selector === "window" && elem instanceof Window) ||
@@ -621,7 +654,7 @@ function pageScript(Config, Messages) {
 
       _onEvent(event, handler) {
         if (this.enabled &&
-            (!this.types || this.types.includes(event.type)) &&
+            (!this.types || this.types.match(event.type)) &&
             (!this.selector ||
               (this.selector === "document" && event.target instanceof Document) ||
               (this.selector === "window" && event.target instanceof Window) ||
@@ -697,9 +730,17 @@ function pageScript(Config, Messages) {
           LogTrace(elem, ".style." + prop, Messages.LogSetterCalled, value);
           return value;
         };
-        this.properties = getCommaSeparatedList(opts.properties);
-        this.selector = opts.selector;
-        this.onlyValues = opts.onlyValues;
+        if (opts.properties) {
+          this.properties = matchRegex(opts.properties) ||
+                            matchCommaSeparatedList(opts.properties);
+        }
+        if (opts.selector) {
+          this.selector = opts.selector;
+        }
+        if (opts.onlyValues) {
+          this.onlyValues = matchRegex(opts.onlyValues) ||
+                            matchCommaSeparatedList(opts.onlyValues);
+        }
         for (const prop of this.properties) {
           registerStylePropertyListener(this, prop);
         }
@@ -715,9 +756,9 @@ function pageScript(Config, Messages) {
 
       _onGet(prop, elem, returnValue) {
         if (this.enabled && this.onGet &&
-            (!this.properties || this.properties.includes(prop)) &&
+            (!this.properties || this.properties.match(prop)) &&
             (!this.selector || elem.matches(this.selector)) &&
-            (!this.onlyValues || this.onlyValues.includes(returnValue))) {
+            (!this.onlyValues || this.onlyValues.match(returnValue))) {
           returnValue = this.onGet(prop, elem, returnValue);
         }
         return returnValue;
@@ -725,9 +766,9 @@ function pageScript(Config, Messages) {
 
       _onSet(prop, elem, newValue) {
         if (this.enabled && this.onSet &&
-            (!this.properties || this.properties.includes(prop)) &&
+            (!this.properties || this.properties.match(prop)) &&
             (!this.selector || elem.matches(this.selector)) &&
-            (!this.onlyValues || this.onlyValues.includes(newValue))) {
+            (!this.onlyValues || this.onlyValues.match(newValue))) {
           newValue = this.onSet(prop, elem, newValue);
         }
         return newValue;
@@ -744,8 +785,8 @@ function pageScript(Config, Messages) {
             const method = ((args[1] || {}).method || "get").toLowerCase();
             const url = new URL(args[0] || "", location).href.toLowerCase();
             if (this.onSend &&
-                (!this.onlyMethods || this.onlyMethods.includes(method)) &&
-                (!this.onlyURLs || url.match(this.onlyURLs))) {
+                (!this.onlyMethods || this.onlyMethods.match(method)) &&
+                (!this.onlyURLs || this.onlyURLs.match(url))) {
               this.onSend("fetch", args);
             }
           },
@@ -772,8 +813,8 @@ function pageScript(Config, Messages) {
             const method = (openArgs[0] || "get").toLowerCase();
             const url = new URL(openArgs[1] || "", location).href.toLowerCase();
             if (this.onSend &&
-                (!this.onlyMethods || this.onlyMethods.includes(method)) &&
-                (!this.onlyURLs || url.match(this.onlyURLs))) {
+                (!this.onlyMethods || this.onlyMethods.match(method)) &&
+                (!this.onlyURLs || this.onlyURLs.match(url))) {
               this.onSend("XHR sent", openArgs);
             }
           },
@@ -795,11 +836,12 @@ function pageScript(Config, Messages) {
       }
 
       if (opts.onlyMethods) {
-        this.onlyMethods = getCommaSeparatedList(opts.onlyMethods);
+        this.onlyMethods = matchRegex(opts.onlyMethods) ||
+                           matchCommaSeparatedList(opts.onlyMethods);
       }
 
       if (opts.onlyURLs) {
-        this.onlyURLs = opts.onlyURLs ? new RegExp(opts.onlyURLs) : undefined;
+        this.onlyURLs = matchRegex(opts.onlyURLs) || matchString(opts.onlyURLs);
       }
     }
 

@@ -149,15 +149,12 @@ const setURLReplacements = (function() {
 
   function findReplacement(url) {
     for (const replacement of replacements) {
-      const match = url.match(replacement.regex);
-      if (match) {
-        if (match.length > 1) {
-          return {
-            type: replacement.type,
-            replacement: url.replace(replacement.regex, replacement.replacement),
-          };
-        }
-        return replacement;
+      const matcher = replacement.matcher;
+      if (matcher.match(url)) {
+        return {
+          replacement: matcher.replace(url, replacement.replacement),
+          type: replacement.type,
+        };
       }
     }
     return {};

@@ -4,8 +4,9 @@
 
 "use strict";
 
-/* global browser, checkIfActiveOnThisTab, maybeActivateCORSBypassListener,
-          setContentScript, setRequestHeaderOverrides, setURLReplacements */
+/* global browser, checkIfActiveOnThisTab, matchRegex, matchString,
+          maybeActivateCORSBypassListener, setContentScript,
+          setRequestHeaderOverrides, setURLReplacements */
 
 const IsAndroid = navigator.userAgent.includes("Android");
 
@@ -48,7 +49,11 @@ function onActiveTabConfigUpdated(tabConfig) {
   if (requestOverridesConfig.enabled) {
     for (const [type, valuesForType] of Object.entries(requestOverridesConfig.values)) {
       for (const [name, value] of Object.entries(valuesForType)) {
-        urlReplacements.push({regex: new RegExp(name), type, replacement: value});
+        urlReplacements.push({
+          matcher: matchRegex(name) || matchString(name),
+          replacement: value,
+          type,
+        });
       }
     }
   }

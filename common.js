@@ -229,3 +229,43 @@ window.ScriptOverrideHooks = {
   },
 };
 
+const matchRegex = (function() {
+  const RE = /^\/(.*)\/([gimuy]*)$/;
+  return function getRegex(str) {
+    const isRE = str.match(RE);
+    if (isRE) {
+      try {
+        const RE = new RegExp(isRE[1], isRE[2]);
+        return {
+          match: str => str.match(RE),
+          replace: (str, rep) => str.replace(RE, rep),
+        };
+      } catch (_) { }
+    }
+    return undefined;
+  };
+})();
+
+function getCommaSeparatedList(str) {
+  const vals = str || "";
+  if (vals) {
+    return vals.split(",").map(v => v.trim());
+  }
+  return [];
+}
+
+function matchCommaSeparatedList(str) {
+  const vals = getCommaSeparatedList(str);
+  return {
+    match: str => vals.includes(str),
+    replace: (str, rep) => rep,
+  };
+}
+
+function matchString(str) {
+  return {
+    match: str2 => str === str2,
+    replace: (str, rep) => rep,
+  };
+}
+
