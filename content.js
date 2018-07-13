@@ -32,6 +32,13 @@ function pageScript(Config, Messages) {
   const gDateNow = Date.now;
   let gConfig = Config;
 
+  const Log = (function() {
+    const origConsole = console;
+    return function log() {
+      origConsole.log.apply(origConsole, arguments);
+    };
+  }());
+
   const LogTrace = (function() {
     const origConsole = console;
     let tracing = false;
@@ -523,15 +530,16 @@ function pageScript(Config, Messages) {
       if (!(type in registrations)) {
         registrations[type] = new WeakMap();
       }
+      const handler = fn.handleEvent || fn;
       const replacementHandler = function(event) {
         let stopEvent = false;
         for (const hook of hooks) {
-          if (hook._onEvent(event) === true) {
+          if (hook._onEvent(event, handler) === true) {
             stopEvent = true;
           }
         }
         if (!stopEvent) {
-          return (fn.handleEvent || fn).apply(this, arguments);
+          return handler.apply(this, arguments);
         }
         return undefined;
       };
@@ -576,8 +584,8 @@ function pageScript(Config, Messages) {
         this.onRemoved = getActionFor(opts.onRemoved) || function(type, elem, fn) {
           LogTrace(type, Messages.LogListenerRemovedFrom, elem, fn);
         };
-        this.onEvent = getActionFor(opts.onEvent) || function(event) {
-          LogTrace(event.type, Messages.LogEventFiredOn, event.target, event);
+        this.onEvent = getActionFor(opts.onEvent) || function(event, handler) {
+          Log(event.type, Messages.LogEventFiredOn, event.target, event, handler);
         };
       }
 
@@ -611,14 +619,14 @@ function pageScript(Config, Messages) {
         }
       }
 
-      _onEvent(event) {
+      _onEvent(event, handler) {
         if (this.enabled &&
             (!this.types || this.types.includes(event.type)) &&
             (!this.selector ||
               (this.selector === "document" && event.target instanceof Document) ||
               (this.selector === "window" && event.target instanceof Window) ||
               (event.target.matches && event.target.matches(this.selector)))) {
-          this.onEvent(event);
+          this.onEvent(event, handler);
         }
       }
     };
