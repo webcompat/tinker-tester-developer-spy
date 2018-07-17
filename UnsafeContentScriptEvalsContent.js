@@ -32,7 +32,7 @@ function BlockUnsafeEvals(url, CSP, AllowEvalsToken) {
     const referrer = document.referrer;
     const reportURI = (CSP.originalPolicy.match(/report-uri ([^;]*)/i) || [])[1];
 
-    for (const name of ["eval", "Function", "execScript", "setTimeout",
+    for (const name of ["eval", "execScript", "setTimeout",
                         "setInterval", "setImmediate"]) {
       const desc = Object.getOwnPropertyDescriptor(window, name);
       if (desc) {
