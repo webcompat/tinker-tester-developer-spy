@@ -63,6 +63,9 @@
   "hookLabelDocumentWrite": {
     "message": "document.write"
   },
+  "hookLabelDisableDebugger": {
+    "message": "Disable debugger keyword"
+  },
   "hookLabelFunctionBind": {
     "message": "function.bind helper"
   },

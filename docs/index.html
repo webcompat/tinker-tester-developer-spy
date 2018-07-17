@@ -41,6 +41,7 @@
       <li><a href="#taskScheduling">Task Scheduling</a></li>
       <li><a href="#shadowDOM">Shadow DOM</a></li>
       <li><a href="#geolocation">Geolocation</a></li>
+      <li><a href="#disableDebugger">Disable debugger keyword</a></li>
       <li><a href="#functionBindHelper">function.bind helper</a></li>
       <li><a href="#bypassSiteCORSSettings">Bypass Site CORS Settings</a></li>
   </ul>
@@ -561,6 +562,28 @@ Tinker("Geolocation").update({
   latitude: 30,
   longitude: 10,
   accuracy: 10,
+});
+    </code></pre></td>
+  </tr></table>
+
+  <h3 id="disableDebugger">Disable debugger keyword</h3>
+
+  <p>Some sites try to abuse the <code>debugger</code> scripting keyword to make it more difficult to debug their pages. This hook will disable the keyword.</p>
+
+  <p>Note that this will not resume script execution if the debugger is already paused; it may be necessary to manually press the debugger's resume button.</p>
+
+  <p>Also note that this feature may cause unexpected breakage if sites are evaluating source code which contains the word "debugger" for purposes other than invoking the script debugger.</p>
+
+  <table><caption>
+    Disabling a page's access to the <code>debugger</code> keyword.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="disable_debugger.png"></td>
+    <td><pre><code>
+Tinker("DisableDebugger").update({
+  enabled: true,
 });
     </code></pre></td>
   </tr></table>

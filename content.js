@@ -1082,6 +1082,54 @@ function pageScript(Config, Messages) {
     }
   }
 
+  const DisableDebugger = (function() {
+    const origFn = window.Function;
+    const origEval = window.eval;
+    const debuggerMatch = /debugger/g;
+    const debuggerReplacement = "true /*debugger*/";
+
+    function fnHandler(...args) {
+      const o = args[args.length - 1];
+      if (typeof o === "string" && o.includes("debugger")) {
+        args[args.length - 1] = o.replace(debuggerMatch, debuggerReplacement);
+      }
+      return origFn.apply(args);
+    }
+
+    function evalHandler(o) {
+      if (typeof o === "string" && o.includes("debugger")) {
+        o = o.replace(debuggerMatch, debuggerReplacement);
+      }
+      return origEval(o);
+    }
+
+    return class DisableDebugger {
+      setOptions(opts) {
+        if ("enabled" in opts) {
+          if (opts.enabled) {
+            this.enable();
+          } else {
+            this.disable();
+          }
+        }
+      }
+
+      enable() {
+        origFn.constructor = fnHandler;
+        origFn.prototype.constructor = fnHandler;
+        window.Function = fnHandler;
+        window.eval = evalHandler;
+      }
+
+      disable() {
+        origFn.constructor = origFn;
+        origFn.prototype.constructor = origFn;
+        window.Function = origFn;
+        window.eval = origEval;
+      }
+    };
+  }());
+
   const FunctionBind = (function() {
     return class FunctionBind {
       constructor() {
@@ -1166,6 +1214,9 @@ function pageScript(Config, Messages) {
             break;
           case "UserAgentOverrides":
             hooks[name] = new SimpleOverrides();
+            break;
+          case "DisableDebugger":
+            hooks[name] = new DisableDebugger();
             break;
           case "FunctionBind":
             hooks[name] = new FunctionBind();

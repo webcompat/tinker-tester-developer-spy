@@ -221,6 +221,9 @@ window.ScriptOverrideHooks = {
       speed: browser.i18n.getMessage("optionGeolocationSpeed"),
     },
   },
+  "DisableDebugger": {
+    type: "checkbox",
+  },
   "FunctionBind": {
     type: "checkbox",
   },
