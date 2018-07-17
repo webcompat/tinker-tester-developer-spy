@@ -168,14 +168,14 @@ const setURLReplacements = (function() {
   if (!browser || !browser.webRequest.filterResponseData) {
     const currentlyRewriting = {};
     rewriteResponse = details => {
-      if (currentlyRewriting[details.id]) {
-        delete currentlyRewriting[details.id];
+      if (currentlyRewriting[details.requestId]) {
+        delete currentlyRewriting[details.requestId];
         return undefined;
       }
 
       const {type, redirectUrl} = findReplacement(details.url);
       if (type === "redirectURL" && redirectUrl) {
-        currentlyRewriting[details.id] = true;
+        currentlyRewriting[details.requestId] = true;
         return {redirectUrl};
       }
       return undefined;
@@ -185,8 +185,8 @@ const setURLReplacements = (function() {
     // contents with the responses we get from the replacement URLs.
     const currentlyRewriting = {};
     rewriteResponse = details => {
-      if (currentlyRewriting[details.id]) {
-        delete currentlyRewriting[details.id];
+      if (currentlyRewriting[details.requestId]) {
+        delete currentlyRewriting[details.requestId];
         return undefined;
       }
 
@@ -195,7 +195,7 @@ const setURLReplacements = (function() {
         return undefined;
       }
 
-      currentlyRewriting[details.id] = true;
+      currentlyRewriting[details.requestId] = true;
       const filter = browser.webRequest.filterResponseData(details.requestId);
       if (type === "redirectURL") {
         filter.onstart = event => {
