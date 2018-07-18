@@ -615,27 +615,40 @@ function pageScript(Config, Messages) {
         if ("enabled" in opts) {
           this.enabled = !!opts.enabled;
         }
-        this.types = matchRegex(opts.types) ||
-                     matchCommaSeparatedList(opts.types);
-        this.selector = opts.selector;
+        if ("types" in opts) {
+          this.types = matchRegex(opts.types) ||
+                       matchCommaSeparatedList(opts.types);
+        }
+        if ("selector" in opts) {
+          this.selector = opts.selector;
+        }
         this.onAdded = (opts.onAdded === "ignore" &&
           ((type, elem, fn) => {
-            LogTrace(type, Messages.LogIgnoringListenerAddedOn, elem, fn);
-            return false;
+            if (this._matches(type, elem)) {
+              LogTrace(type, Messages.LogIgnoringListenerAddedOn, elem, fn);
+              return false;
+            }
+            return undefined;
           })) || getActionFor(opts.onAdded) || function(type, elem, fn) {
           LogTrace(type, Messages.LogListenerAddedOn, elem, fn);
         };
         this.onRemoved = (opts.onRemoved === "ignore" &&
           ((type, elem, fn) => {
-            LogTrace(type, Messages.LogIgnoringListenerRemovedFrom, elem, fn);
-            return false;
+            if (this._matches(type, elem)) {
+              LogTrace(type, Messages.LogIgnoringListenerRemovedFrom, elem, fn);
+              return false;
+            }
+            return undefined;
           })) || getActionFor(opts.onRemoved) || function(type, elem, fn) {
           LogTrace(type, Messages.LogListenerRemovedFrom, elem, fn);
         };
         this.onEvent = (opts.onEvent === "ignore" &&
           ((event, handler) => {
-            Log(event.type, Messages.LogIgnoringEvent, event.target, event, handler);
-            return false;
+            if (this._matches(event.type, event.target)) {
+              Log(event.type, Messages.LogIgnoringEvent, event.target, event, handler);
+              return false;
+            }
+            return undefined;
           })) || getActionFor(opts.onEvent) || function(event, handler) {
             Log(event.type, Messages.LogEventFiredOn, event.target, event, handler);
           };
@@ -649,37 +662,30 @@ function pageScript(Config, Messages) {
         this.enabled = false;
       }
 
+      _matches(type, elem) {
+         return (!this.types || this.types.match(type)) &&
+                (!this.selector ||
+                  (this.selector === "document" && elem instanceof Document) ||
+                  (this.selector === "window" && elem instanceof Window) ||
+                  (elem.matches && elem.matches(this.selector)));
+      }
+
       _onAdded(type, elem, fn) {
-        if (this.enabled &&
-            (!this.types || this.types.match(type)) &&
-            (!this.selector ||
-              (this.selector === "document" && elem instanceof Document) ||
-              (this.selector === "window" && elem instanceof Window) ||
-              (elem.matches && elem.matches(this.selector)))) {
+        if (this.enabled && this._matches(type, elem)) {
           return this.onAdded(type, elem, fn);
         }
         return undefined;
       }
 
       _onRemoved(type, elem, fn) {
-        if (this.enabled &&
-            (!this.types || this.types.match(type)) &&
-            (!this.selector ||
-              (this.selector === "document" && elem instanceof Document) ||
-              (this.selector === "window" && elem instanceof Window) ||
-              (elem.matches && elem.matches(this.selector)))) {
+        if (this.enabled && this._matches(type, elem)) {
           return this.onRemoved(type, elem, fn);
         }
         return undefined;
       }
 
       _onEvent(event, handler) {
-        if (this.enabled &&
-            (!this.types || this.types.match(event.type)) &&
-            (!this.selector ||
-              (this.selector === "document" && event.target instanceof Document) ||
-              (this.selector === "window" && event.target instanceof Window) ||
-              (event.target.matches && event.target.matches(this.selector)))) {
+        if (this.enabled && this._matches(event.type, event.target)) {
           return this.onEvent(event, handler);
         }
         return undefined;
