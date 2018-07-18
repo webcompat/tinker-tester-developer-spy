@@ -459,8 +459,11 @@ function redrawDetails(option) {
   if (cbs.length) {
     const table = document.createElement("table");
     frag.appendChild(table);
-    for (const [name, label] of cbs) {
+    for (const [name, opts] of cbs) {
       const config = optConfig[name];
+      const label = opts.label || opts;
+      const addIgnoreOption = opts.allowIgnore || false;
+      const addHideOption = opts.allowHide || false;
 
       const tr = document.createElement("tr");
       table.appendChild(tr);
@@ -469,7 +472,7 @@ function redrawDetails(option) {
       tr.appendChild(td);
       td.appendChild(document.createTextNode(label));
 
-      const sel = addSelectActionCell(name, tr, config);
+      const sel = addSelectActionCell(name, tr, config, addIgnoreOption, addHideOption);
       sel.setAttribute("data-type", "callback");
     }
   }

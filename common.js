@@ -48,9 +48,20 @@ window.ScriptOverrideHooks = {
   "EventListener": {
     options: {types: browser.i18n.getMessage("optionEventTypes"),
               selector: browser.i18n.getMessage("optionOnlyIfTargetMatches")},
-    callbacks: {onAdded: browser.i18n.getMessage("callbackOnListenerAdded"),
-                onRemoved: browser.i18n.getMessage("callbackOnListenerRemoved"),
-                onEvent: browser.i18n.getMessage("callbackOnEventFired")},
+    callbacks: {
+      onAdded: {
+        allowIgnore: true,
+        label: browser.i18n.getMessage("callbackOnListenerAdded"),
+      },
+      onRemoved: {
+        allowIgnore: true,
+        label: browser.i18n.getMessage("callbackOnListenerRemoved"),
+      },
+      onEvent: {
+        allowIgnore: true,
+        label: browser.i18n.getMessage("callbackOnEventFired"),
+      },
+    },
   },
   "EventFeatures": {
     properties: [

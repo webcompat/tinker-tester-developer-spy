@@ -134,13 +134,22 @@
     "message": "element lost"
   },
   "logEventFiredOn": {
-    "message": "fired on"
+    "message": "event fired on"
   },
   "logGetterAccessed": {
     "message": "accessed"
   },
   "logIgnoringCall": {
     "message": "ignoring call"
+  },
+  "logIgnoringEvent": {
+    "message": "event being ignored on"
+  },
+  "logIgnoringListenerAddedOn": {
+    "message": "listener addition being ignored on"
+  },
+  "logIgnoringListenerRemovedFrom": {
+    "message": "listener removal being ignored from"
   },
   "logInvalidFunctionBind": {
     "message": "Function.prototype.bind requires a callable object"

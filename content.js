@@ -14,11 +14,14 @@ window.Messages = {
   apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
   apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
   LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
+  LogIgnoringEvent: browser.i18n.getMessage("logIgnoringEvent"),
   LogElementCreated: browser.i18n.getMessage("logElementCreated"),
   LogElementDetected: browser.i18n.getMessage("logElementDetected"),
   LogElementLost: browser.i18n.getMessage("logElementLost"),
   LogListenerAddedOn: browser.i18n.getMessage("logListenerAddedOn"),
   LogListenerRemovedFrom: browser.i18n.getMessage("logListenerRemovedFrom"),
+  LogIgnoringListenerAddedOn: browser.i18n.getMessage("logIgnoringListenerAddedOn"),
+  LogIgnoringListenerRemovedFrom: browser.i18n.getMessage("logIgnoringListenerRemovedFrom"),
   LogEventFiredOn: browser.i18n.getMessage("logEventFiredOn"),
   LogGetterAccessed: browser.i18n.getMessage("logGetterAccessed"),
   LogSetterCalled: browser.i18n.getMessage("logSetterCalled"),
@@ -554,7 +557,9 @@ function pageScript(Config, Messages) {
       const fn = arguments[1];
       const options = arguments[2];
       for (const hook of hooks) {
-        hook._onAdded(type, elem, fn, options);
+        if (hook._onAdded(type, elem, fn, options) === false) {
+          return undefined;
+        }
       }
       if (!fn) { // no handler, so this call will fizzle anyway
         return undefined;
@@ -566,7 +571,7 @@ function pageScript(Config, Messages) {
       const replacementHandler = function(event) {
         let stopEvent = false;
         for (const hook of hooks) {
-          if (hook._onEvent(event, handler) === true) {
+          if (hook._onEvent(event, handler) === false) {
             stopEvent = true;
           }
         }
@@ -590,7 +595,9 @@ function pageScript(Config, Messages) {
       if (fn && registrations[type] && registrations[type].has(fn)) {
         const replacementHandler = registrations[type].get(fn);
         for (const hook of hooks) {
-          hook._onRemoved(type, elem, replacementHandler);
+          if (hook._onRemoved(type, elem, replacementHandler) === false) {
+            return;
+          }
         }
         oldREL.call(this, arguments[0], replacementHandler, options);
         registrations[type].delete(fn);
@@ -611,15 +618,27 @@ function pageScript(Config, Messages) {
         this.types = matchRegex(opts.types) ||
                      matchCommaSeparatedList(opts.types);
         this.selector = opts.selector;
-        this.onAdded = getActionFor(opts.onAdded) || function(type, elem, fn) {
+        this.onAdded = (opts.onAdded === "ignore" &&
+          ((type, elem, fn) => {
+            LogTrace(type, Messages.LogIgnoringListenerAddedOn, elem, fn);
+            return false;
+          })) || getActionFor(opts.onAdded) || function(type, elem, fn) {
           LogTrace(type, Messages.LogListenerAddedOn, elem, fn);
         };
-        this.onRemoved = getActionFor(opts.onRemoved) || function(type, elem, fn) {
+        this.onRemoved = (opts.onRemoved === "ignore" &&
+          ((type, elem, fn) => {
+            LogTrace(type, Messages.LogIgnoringListenerRemovedFrom, elem, fn);
+            return false;
+          })) || getActionFor(opts.onRemoved) || function(type, elem, fn) {
           LogTrace(type, Messages.LogListenerRemovedFrom, elem, fn);
         };
-        this.onEvent = getActionFor(opts.onEvent) || function(event, handler) {
-          Log(event.type, Messages.LogEventFiredOn, event.target, event, handler);
-        };
+        this.onEvent = (opts.onEvent === "ignore" &&
+          ((event, handler) => {
+            Log(event.type, Messages.LogIgnoringEvent, event.target, event, handler);
+            return false;
+          })) || getActionFor(opts.onEvent) || function(event, handler) {
+            Log(event.type, Messages.LogEventFiredOn, event.target, event, handler);
+          };
       }
 
       enable() {
@@ -637,8 +656,9 @@ function pageScript(Config, Messages) {
               (this.selector === "document" && elem instanceof Document) ||
               (this.selector === "window" && elem instanceof Window) ||
               (elem.matches && elem.matches(this.selector)))) {
-          this.onAdded(type, elem, fn);
+          return this.onAdded(type, elem, fn);
         }
+        return undefined;
       }
 
       _onRemoved(type, elem, fn) {
@@ -648,8 +668,9 @@ function pageScript(Config, Messages) {
               (this.selector === "document" && elem instanceof Document) ||
               (this.selector === "window" && elem instanceof Window) ||
               (elem.matches && elem.matches(this.selector)))) {
-          this.onRemoved(type, elem, fn);
+          return this.onRemoved(type, elem, fn);
         }
+        return undefined;
       }
 
       _onEvent(event, handler) {
@@ -659,8 +680,9 @@ function pageScript(Config, Messages) {
               (this.selector === "document" && event.target instanceof Document) ||
               (this.selector === "window" && event.target instanceof Window) ||
               (event.target.matches && event.target.matches(this.selector)))) {
-          this.onEvent(event, handler);
+          return this.onEvent(event, handler);
         }
+        return undefined;
       }
     };
   }());
