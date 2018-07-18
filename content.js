@@ -10,26 +10,6 @@
 // can modify the page script environment and set up the ability to
 // create and modify hooks before other page scripts run.
 
-window.Messages = {
-  apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
-  apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
-  LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
-  LogIgnoringEvent: browser.i18n.getMessage("logIgnoringEvent"),
-  LogElementCreated: browser.i18n.getMessage("logElementCreated"),
-  LogElementDetected: browser.i18n.getMessage("logElementDetected"),
-  LogElementLost: browser.i18n.getMessage("logElementLost"),
-  LogListenerAddedOn: browser.i18n.getMessage("logListenerAddedOn"),
-  LogListenerRemovedFrom: browser.i18n.getMessage("logListenerRemovedFrom"),
-  LogIgnoringListenerAddedOn: browser.i18n.getMessage("logIgnoringListenerAddedOn"),
-  LogIgnoringListenerRemovedFrom: browser.i18n.getMessage("logIgnoringListenerRemovedFrom"),
-  LogEventFiredOn: browser.i18n.getMessage("logEventFiredOn"),
-  LogGetterAccessed: browser.i18n.getMessage("logGetterAccessed"),
-  LogSetterCalled: browser.i18n.getMessage("logSetterCalled"),
-  LogCalledWithArgs: browser.i18n.getMessage("logCalledWithArgs"),
-  LogInvalidFunctionBind: browser.i18n.getMessage("logInvalidFunctionBind"),
-  LogBoundFunctionCalled: browser.i18n.getMessage("logBoundFunctionCalled"),
-};
-
 function pageScript(Config, Messages) {
   const gSetTimeout = setTimeout;
   const gDateNow = Date.now;
@@ -1363,20 +1343,41 @@ function pageScript(Config, Messages) {
   return channel.port2;
 }
 
-window.port = window.eval(`(${pageScript}(${JSON.stringify(window.Config)},
-                                          ${JSON.stringify(window.Messages)}));`);
+(function() {
+  const Messages = {
+    apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
+    apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
+    LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
+    LogIgnoringEvent: browser.i18n.getMessage("logIgnoringEvent"),
+    LogElementCreated: browser.i18n.getMessage("logElementCreated"),
+    LogElementDetected: browser.i18n.getMessage("logElementDetected"),
+    LogElementLost: browser.i18n.getMessage("logElementLost"),
+    LogListenerAddedOn: browser.i18n.getMessage("logListenerAddedOn"),
+    LogListenerRemovedFrom: browser.i18n.getMessage("logListenerRemovedFrom"),
+    LogIgnoringListenerAddedOn: browser.i18n.getMessage("logIgnoringListenerAddedOn"),
+    LogIgnoringListenerRemovedFrom: browser.i18n.getMessage("logIgnoringListenerRemovedFrom"),
+    LogEventFiredOn: browser.i18n.getMessage("logEventFiredOn"),
+    LogGetterAccessed: browser.i18n.getMessage("logGetterAccessed"),
+    LogSetterCalled: browser.i18n.getMessage("logSetterCalled"),
+    LogCalledWithArgs: browser.i18n.getMessage("logCalledWithArgs"),
+    LogInvalidFunctionBind: browser.i18n.getMessage("logInvalidFunctionBind"),
+    LogBoundFunctionCalled: browser.i18n.getMessage("logBoundFunctionCalled"),
+  };
 
-window.port.onmessage = msg => {
-  const tabConfigChanges = msg.data;
-  if (tabConfigChanges && Object.keys(tabConfigChanges).length) {
-    browser.runtime.sendMessage({tabConfigChanges});
-  }
-};
+  const port = window.eval(`(${pageScript}(${JSON.stringify(window.Config)},
+                                           ${JSON.stringify(Messages)}));`);
 
-// delegate any changes to the inner window's script using a message port
-browser.runtime.onMessage.addListener(
-  message => {
-    window.port.postMessage(JSON.stringify(message));
-  }
-);
+  port.onmessage = msg => {
+    const tabConfigChanges = msg.data;
+    if (tabConfigChanges && Object.keys(tabConfigChanges).length) {
+      browser.runtime.sendMessage({tabConfigChanges});
+    }
+  };
 
+  // delegate any changes to the inner window's script using a message port
+  browser.runtime.onMessage.addListener(
+    message => {
+      port.postMessage(JSON.stringify(message));
+    }
+  );
+})();
