@@ -187,7 +187,7 @@ window.ScriptOverrideHooks = {
       "HTMLAnchorElement.prototype.href",
     ],
     methods: [
-      "HTMLAnchorElement.prototype.click",
+      "HTMLElement.prototype.click",
     ]
   },
   "MediaElements": {
