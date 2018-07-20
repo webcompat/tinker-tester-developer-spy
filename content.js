@@ -534,20 +534,19 @@ function pageScript(Config, Messages) {
     EventTarget.prototype.addEventListener = function() {
       const elem = this;
       const type = arguments[0];
-      const fn = arguments[1];
+      const handler = arguments[1];
       const options = arguments[2];
       for (const hook of hooks) {
-        if (hook._onAdded(type, elem, fn, options) === false) {
+        if (hook._onAdded(type, elem, handler, options) === false) {
           return undefined;
         }
       }
-      if (!fn) { // no handler, so this call will fizzle anyway
+      if (!handler) { // no handler, so this call will fizzle anyway
         return undefined;
       }
       if (!(type in registrations)) {
         registrations[type] = new WeakMap();
       }
-      const handler = fn.handleEvent || fn;
       const replacementHandler = function(event) {
         let stopEvent = false;
         for (const hook of hooks) {
@@ -556,13 +555,16 @@ function pageScript(Config, Messages) {
           }
         }
         if (!stopEvent) {
+          if (handler.handleEvent) {
+            return handler.handleEvent(event);
+          }
           return handler.apply(this, arguments);
         }
         return undefined;
       };
-      const returnValue = oldAEL.call(this, arguments[0], replacementHandler, options);
-      if (!registrations[type].has(fn)) {
-        registrations[type].set(fn, replacementHandler);
+      const returnValue = oldAEL.call(this, type, replacementHandler, options);
+      if (!registrations[type].has(handler)) {
+        registrations[type].set(handler, replacementHandler);
       }
       return returnValue;
     };
@@ -570,17 +572,17 @@ function pageScript(Config, Messages) {
     EventTarget.prototype.removeEventListener = function() {
       const elem = this;
       const type = arguments[0];
-      const fn = arguments[1];
+      const handler = arguments[1];
       const options = arguments[2];
-      if (fn && registrations[type] && registrations[type].has(fn)) {
-        const replacementHandler = registrations[type].get(fn);
+      if (handler && registrations[type] && registrations[type].has(handler)) {
+        const replacementHandler = registrations[type].get(handler);
         for (const hook of hooks) {
           if (hook._onRemoved(type, elem, replacementHandler) === false) {
             return;
           }
         }
-        oldREL.call(this, arguments[0], replacementHandler, options);
-        registrations[type].delete(fn);
+        oldREL.call(this, type, replacementHandler, options);
+        registrations[type].delete(handler);
       } else {
         oldREL.apply(this, arguments);
       }
