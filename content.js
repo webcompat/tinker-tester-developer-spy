@@ -4,16 +4,18 @@
 
 "use strict";
 
-/* global browser, Config */
+/* global browser, cloneInto, Config */
 
 // This content script is called before any other page scripts, so we
 // can modify the page script environment and set up the ability to
 // create and modify hooks before other page scripts run.
 
 function pageScript(Config, Messages) {
+  const { UUID } = Config;
+
   const gSetTimeout = setTimeout;
+  const gClearTimeout = clearTimeout;
   const gDateNow = Date.now;
-  let gConfig = Config;
 
   const Log = (function() {
     const origConsole = console;
@@ -77,6 +79,7 @@ function pageScript(Config, Messages) {
       if (this.enabled) {
         return;
       }
+      this.enabled = true;
       let obj = window;
       let index = 0;
       const count = this.path.length;
@@ -112,6 +115,7 @@ function pageScript(Config, Messages) {
       } else {
         delete obj[name];
       }
+      this.enabled = false;
     }
 
     findProperty(obj, name) {
@@ -285,151 +289,160 @@ function pageScript(Config, Messages) {
     };
   }
 
-  const ElementCreatedHook = (function() {
-    const listeners = [];
-    let audioConstructorHook;
-    let createElementHook;
-    let createElementNSHook;
-    let importNodeHook;
-    let cloneNodeHook;
-    let innerHTMLHook;
-    let outerHTMLHook;
+  class TTDSHook {
+    constructor(name, oldTTDS) {
+      this.name = name;
+    }
 
-    function registerNameCreationListener(listener) {
-      if (!createElementHook) {
-        audioConstructorHook = new PropertyHook("window.Audio", {
-          onCalled: (fn, args) => {
-            for (const listener of listeners || []) {
-              listener._onCreated("audio");
-            }
-          },
-        });
-        createElementHook = new PropertyHook("document.createElement", {
-          onCalled: (fn, args) => {
-            const name = args[0].toLowerCase();
-            for (const listener of listeners || []) {
-              listener._onCreated(name);
-            }
-          },
-        });
-        createElementNSHook = new PropertyHook("document.createElementNS", {
-          onCalled: (fn, args) => {
-            const name = args[0].toLowerCase();
-            for (const listener of listeners || []) {
-              listener._onCreated(name);
-            }
-          },
-        });
-        importNodeHook = new PropertyHook("document.importNode", {
-          onCalled: (fn, args, thisObj) => {
-            const name = args[0].nodeName.toLowerCase();
-            for (const listener of listeners || []) {
-              listener._onCreated(name);
-            }
-          },
-        });
-        cloneNodeHook = new PropertyHook("Element.prototype.cloneNode", {
-          onCalled: (fn, args, thisObj) => {
-            const name = thisObj.nodeName.toLowerCase();
-            for (const listener of listeners || []) {
-              listener._onCreated(name);
-            }
-          },
-        });
-        innerHTMLHook = new PropertyHook("Element.prototype.innerHTML", {
-          onSetter: (obj, html) => {
-            for (const listener of listeners || []) {
-              listener._onHTML(html);
-            }
-            return html;
-          },
-        });
-        outerHTMLHook = new PropertyHook("Element.prototype.outerHTML", {
-          onSetter: (obj, html) => {
-            for (const listener of listeners || []) {
-              listener._onHTML(html);
-            }
-            return html;
-          },
-        });
+    check() {
+      return Config[this.name];
+    }
+
+    update(opts) {
+      if (!("enabled" in opts)) {
+        opts.enabled = true;
+      }
+      const changes = {};
+      changes[this.name] = opts;
+      channel.port1.postMessage(changes);
+      return "OK";
+    }
+
+    // Will be called once by the constructor
+    activate() {
+    }
+
+    // Will be called when this TTDS instance dies
+    deactivate() {
+    }
+  }
+
+  class ElementCreatedHook extends TTDSHook {
+    constructor(name, oldTTDS) {
+      super(name, oldTTDS);
+
+      this.audioConstructorHook = new PropertyHook("window.Audio", {
+        onCalled: (fn, args) => {
+          this._onCreated("audio");
+        },
+      });
+      this.createElementHook = new PropertyHook("document.createElement", {
+        onCalled: (fn, args) => {
+          const name = args[0].toLowerCase();
+          this._onCreated(name);
+        },
+      });
+      this.createElementNSHook = new PropertyHook("document.createElementNS", {
+        onCalled: (fn, args) => {
+          const name = args[0].toLowerCase();
+          this._onCreated(name);
+        },
+      });
+      this.importNodeHook = new PropertyHook("document.importNode", {
+        onCalled: (fn, args, thisObj) => {
+          const name = args[0].nodeName.toLowerCase();
+          this._onCreated(name);
+        },
+      });
+      this.cloneNodeHook = new PropertyHook("Element.prototype.cloneNode", {
+        onCalled: (fn, args, thisObj) => {
+          const name = thisObj.nodeName.toLowerCase();
+          this._onCreated(name);
+        },
+      });
+      this.innerHTMLHook = new PropertyHook("Element.prototype.innerHTML", {
+        onSetter: (obj, html) => {
+          this._onHTML(html);
+          return html;
+        },
+      });
+      this.outerHTMLHook = new PropertyHook("Element.prototype.outerHTML", {
+        onSetter: (obj, html) => {
+          this._onHTML(html);
+          return html;
+        },
+      });
+    }
+
+    deactivate() {
+      this.disable();
+    }
+
+    setOptions(opts) {
+      if (opts.onCreated) {
+        this.onCreated = getActionFor(opts.onCreated) || function(elem) {
+          LogTrace(Messages.LogElementCreated, elem);
+        };
       }
 
-      if (!listeners.includes(listener)) {
-        listeners.push(listener);
+      if (opts.names) {
+        this.names = [];
+        this.regexes = {};
+        getCommaSeparatedList(opts.names).map(_name => {
+          const name = _name.trim().toLowerCase();
+          this.regexes[name] = new RegExp("<" + name, "i");
+          this.names.push(name);
+          return name;
+        });
+      } else {
+        delete this.names;
+      }
+
+      if ("enabled" in opts) {
+        if (opts.enabled) {
+          this.enable();
+        } else {
+          this.disable();
+        }
       }
     }
 
-    return class ElementCreatedHook {
-      constructor() {
-        registerNameCreationListener(this);
+    enable() {
+      this.enabled = true;
+
+      this.audioConstructorHook.enable();
+      this.createElementHook.enable();
+      this.createElementNSHook.enable();
+      this.importNodeHook.enable();
+      this.cloneNodeHook.enable();
+      this.innerHTMLHook.enable();
+      this.outerHTMLHook.enable();
+    }
+
+    disable() {
+      this.enabled = false;
+
+      this.audioConstructorHook.disable();
+      this.createElementHook.disable();
+      this.createElementNSHook.disable();
+      this.importNodeHook.disable();
+      this.cloneNodeHook.disable();
+      this.innerHTMLHook.disable();
+      this.outerHTMLHook.disable();
+    }
+
+    _onCreated(name) {
+      if (this.enabled && this.onCreated &&
+          (!this.names || this.names.includes(name))) {
+        this.onCreated(name);
       }
+    }
 
-      setOptions(opts) {
-        if (opts.onCreated) {
-          this.onCreated = getActionFor(opts.onCreated) || function(elem) {
-            LogTrace(Messages.LogElementCreated, elem);
-          };
-        }
-
-        if (opts.names) {
-          this.names = [];
-          this.regexes = {};
-          getCommaSeparatedList(opts.names).map(_name => {
-            const name = _name.trim().toLowerCase();
-            this.regexes[name] = new RegExp("<" + name, "i");
-            this.names.push(name);
-            return name;
-          });
-        } else {
-          delete this.names;
-        }
-
-        if ("enabled" in opts) {
-          if (opts.enabled) {
-            this.enable();
-          } else {
-            this.disable();
+    _onHTML(html) {
+      if (this.enabled && this.onCreated && this.names) {
+        for (const name of this.names) {
+          if (this.regexes[name].test(html)) {
+            this.onCreated(name);
           }
         }
       }
+    }
+  }
 
-      enable() {
-        this.enabled = true;
+  class ElementDetectionHook extends TTDSHook {
+    constructor(name, oldTTDS) {
+      super(name, oldTTDS);
 
-        audioConstructorHook.enable();
-        createElementHook.enable();
-        createElementNSHook.enable();
-        importNodeHook.enable();
-        cloneNodeHook.enable();
-        innerHTMLHook.enable();
-        outerHTMLHook.enable();
-      }
-
-      disable() {
-        this.enabled = false;
-      }
-
-      _onCreated(name) {
-        if (this.enabled && this.onCreated &&
-            (!this.names || this.names.includes(name))) {
-          this.onCreated(name);
-        }
-      }
-
-      _onHTML(html) {
-        if (this.enabled && this.onCreated && this.names) {
-          for (const name of this.names) {
-            if (this.regexes[name].test(html)) {
-              this.onCreated(name);
-            }
-          }
-        }
-      }
-    };
-  }());
-
-  class ElementDetectionHook {
-    constructor() {
       this.observer = new MutationObserver(mutations => {
         for (const mutation of mutations) {
           if ("addedNodes" in mutation) {
@@ -448,7 +461,7 @@ function pageScript(Config, Messages) {
               }
             }
           }
-          if ("attributes" in mutation) {
+          if (mutation.type === "attributes") {
             const node = mutation.target;
             if (node.matches) {
               const currentlyMatches = this._currentlyMatchingNodes.has(node);
@@ -465,6 +478,10 @@ function pageScript(Config, Messages) {
           }
         }
       });
+    }
+
+    deactivate() {
+      this.disable();
     }
 
     setOptions(opts) {
@@ -525,74 +542,7 @@ function pageScript(Config, Messages) {
   }
 
   const EventListenerHook = (function() {
-    const hooks = [];
-    const oldAEL = EventTarget.prototype.addEventListener;
-    const oldREL = EventTarget.prototype.removeEventListener;
-
-    const registrations = {};
-
-    EventTarget.prototype.addEventListener = function() {
-      const elem = this;
-      const type = arguments[0];
-      const handler = arguments[1];
-      const options = arguments[2];
-      for (const hook of hooks) {
-        if (hook._onAdded(type, elem, handler, options) === false) {
-          return undefined;
-        }
-      }
-      if (!handler) { // no handler, so this call will fizzle anyway
-        return undefined;
-      }
-      if (!(type in registrations)) {
-        registrations[type] = new WeakMap();
-      }
-      const replacementHandler = function(event) {
-        let stopEvent = false;
-        for (const hook of hooks) {
-          if (hook._onEvent(event, handler) === false) {
-            stopEvent = true;
-          }
-        }
-        if (!stopEvent) {
-          if (handler.handleEvent) {
-            return handler.handleEvent(event);
-          }
-          return handler.apply(this, arguments);
-        }
-        return undefined;
-      };
-      const returnValue = oldAEL.call(this, type, replacementHandler, options);
-      if (!registrations[type].has(handler)) {
-        registrations[type].set(handler, replacementHandler);
-      }
-      return returnValue;
-    };
-
-    EventTarget.prototype.removeEventListener = function() {
-      const elem = this;
-      const type = arguments[0];
-      const handler = arguments[1];
-      const options = arguments[2];
-      if (handler && registrations[type] && registrations[type].has(handler)) {
-        const replacementHandler = registrations[type].get(handler);
-        for (const hook of hooks) {
-          if (hook._onRemoved(type, elem, replacementHandler) === false) {
-            return;
-          }
-        }
-        oldREL.call(this, type, replacementHandler, options);
-        registrations[type].delete(handler);
-      } else {
-        oldREL.apply(this, arguments);
-      }
-    };
-
-    return class EventListenerHook {
-      constructor() {
-        hooks.push(this);
-      }
-
+    class Rule {
       setOptions(opts) {
         if ("enabled" in opts) {
           this.enabled = !!opts.enabled;
@@ -652,14 +602,14 @@ function pageScript(Config, Messages) {
                   (elem.matches && elem.matches(this.selector)));
       }
 
-      _onAdded(type, elem, fn) {
+      _onAdded(elem, type, fn) {
         if (this.enabled && this._matches(type, elem)) {
           return this.onAdded(type, elem, fn);
         }
         return undefined;
       }
 
-      _onRemoved(type, elem, fn) {
+      _onRemoved(elem, type, fn) {
         if (this.enabled && this._matches(type, elem)) {
           return this.onRemoved(type, elem, fn);
         }
@@ -672,122 +622,250 @@ function pageScript(Config, Messages) {
         }
         return undefined;
       }
-    };
-  }());
-
-  const StyleListenerHook = (function() {
-    const relatedElementForPropsObj = new WeakMap();
-
-    new PropertyHook(
-      "HTMLElement.prototype.style",
-      {
-        enabled: true,
-        onGetter: (element, css2Properties) => {
-          relatedElementForPropsObj.set(css2Properties, element);
-          return css2Properties;
-        }
-      }
-    );
-
-    const PropertyNameHooks = {};
-    function registerStylePropertyListener(listener, prop) {
-      if (!PropertyNameHooks[prop]) {
-        PropertyNameHooks[prop] = {
-          listeners: [],
-          hook: new PropertyHook(
-            "CSS2Properties.prototype." + prop,
-            {
-              enabled: true,
-              onGetter: (obj, value) => {
-                if (relatedElementForPropsObj.has(obj)) {
-                  const element = relatedElementForPropsObj.get(obj);
-                  for (const listener of PropertyNameHooks[prop].listeners || []) {
-                    value = listener._onGet(prop, element, value);
-                  }
-                }
-                return value;
-              },
-              onSetter: (obj, newValue) => {
-                if (relatedElementForPropsObj.has(obj)) {
-                  const element = relatedElementForPropsObj.get(obj);
-                  for (const listener of PropertyNameHooks[prop].listeners || []) {
-                    newValue = listener._onSet(prop, element, newValue);
-                  }
-                }
-                return newValue;
-              },
-            }
-          ),
-        };
-      }
-      const listeners = PropertyNameHooks[prop].listeners;
-      if (!listeners.includes(listener)) {
-        listeners.push(listener);
-      }
     }
 
-    return class StyleListenerHook {
-      setOptions(opts) {
-        if ("enabled" in opts) {
-          this.enabled = !!opts.enabled;
+    return class EventListenerHook extends TTDSHook {
+      constructor(name, oldTTDS) {
+        super(name, oldTTDS);
+
+        this.targetInstance = this;
+        this.enabled = false;
+        this.rules = [new Rule()];
+
+        if (oldTTDS && oldTTDS[name]) {
+          const oldInstance = oldTTDS[name];
+
+          // Inherhit handler proxies
+          this.handlerProxies = oldInstance.handlerProxies;
+
+          // Make those proxies call us instead
+          const originalInstance = oldInstance.originalInstance || oldInstance;
+          this.originalInstance = originalInstance;
+          originalInstance.targetInstance = this;
+        } else {
+          this.handlerProxies = new WeakMap();
+        }
+      }
+
+      activate() {
+        if (this.oldAEL) {
+          return;
         }
 
-        this.onGet = getActionFor(opts.onGet) || function(prop, elem, value) {
-          LogTrace(elem, ".style." + prop, Messages.LogGetterAccessed, value);
-          return value;
+        this.oldAEL = EventTarget.prototype.addEventListener;
+        this.oldREL = EventTarget.prototype.removeEventListener;
+
+        const me = this;
+        EventTarget.prototype.addEventListener = function(type, handler, opts) {
+          return me.onAddListener(this, type, handler, opts);
         };
-        this.onSet = getActionFor(opts.onSet) || function(prop, elem, value) {
-          LogTrace(elem, ".style." + prop, Messages.LogSetterCalled, value);
-          return value;
+        EventTarget.prototype.removeEventListener = function(type, handler, opts) {
+          return me.onRemoveListener(this, type, handler, opts);
         };
-        if (opts.properties) {
-          this.properties = matchRegex(opts.properties) ||
-                            matchCommaSeparatedList(opts.properties);
+      }
+
+      deactivate() {
+        if (!this.oldAEL) {
+          return;
         }
-        if (opts.selector) {
-          this.selector = opts.selector;
-        }
-        if (opts.onlyValues) {
-          this.onlyValues = matchRegex(opts.onlyValues) ||
-                            matchCommaSeparatedList(opts.onlyValues);
-        }
-        for (const prop of this.properties) {
-          registerStylePropertyListener(this, prop);
-        }
+
+        this.disable();
+
+        EventTarget.prototype.addEventListener = this.oldAEL;
+        EventTarget.prototype.removeEventListener = this.oldREL;
+
+        this.oldAEL = undefined;
+        this.oldREL = undefined;
       }
 
       enable() {
-        this.enabled = true;
+        for (const rule of this.rules) {
+          rule.enable();
+        }
       }
 
       disable() {
-        this.enabled = false;
+        for (const rule of this.rules) {
+          rule.disable();
+        }
       }
 
-      _onGet(prop, elem, returnValue) {
-        if (this.enabled && this.onGet &&
-            (!this.properties || this.properties.match(prop)) &&
-            (!this.selector || elem.matches(this.selector)) &&
-            (!this.onlyValues || this.onlyValues.match(returnValue))) {
-          returnValue = this.onGet(prop, elem, returnValue);
+      onAddListener(elem, type, handler, options) {
+        for (const rule of this.rules) {
+          if (rule._onAdded(elem, type, handler, options) === false) {
+            return undefined;
+          }
         }
+        if (!handler) { // no handler, so this call will fizzle anyway
+          return undefined;
+        }
+        const proxy = this.handlerProxies.get(handler) || (event => {
+          return this.targetInstance.onEvent(event, handler);
+        });
+        const returnValue = this.oldAEL.call(elem, type, proxy, options);
+        this.handlerProxies.set(handler, proxy);
         return returnValue;
       }
 
-      _onSet(prop, elem, newValue) {
-        if (this.enabled && this.onSet &&
-            (!this.properties || this.properties.match(prop)) &&
-            (!this.selector || elem.matches(this.selector)) &&
-            (!this.onlyValues || this.onlyValues.match(newValue))) {
-          newValue = this.onSet(prop, elem, newValue);
+      onRemoveListener(elem, type, handler, options) {
+        if (handler && this.handlerProxies.has(handler)) {
+          for (const rule of this.rules) {
+            if (rule._onRemoved(elem, type, handler) === false) {
+              return;
+            }
+          }
+          const proxy = this.handlerProxies.get(handler);
+          this.oldREL.call(elem, type, proxy, options);
+        } else {
+          this.oldREL.apply(elem, arguments);
         }
-        return newValue;
+      }
+
+      onEvent(event, originalHandler) {
+        let stopEvent = false;
+        for (const rule of this.rules) {
+          if (rule._onEvent(event, originalHandler) === false) {
+            stopEvent = true;
+          }
+        }
+        if (!stopEvent) {
+          if (originalHandler.handleEvent) {
+            return originalHandler.handleEvent(event);
+          }
+          return originalHandler.apply(this, arguments);
+        }
+        return undefined;
+      }
+
+      setOptions(opts) {
+        this.rules[0].setOptions(opts);
+        this.enabled = this.rules[0].enabled;
       }
     };
   }());
 
-  class XHRandFetchObserver {
-    constructor() {
+  class StyleListenerHook extends TTDSHook {
+    constructor(name, oldTTDS) {
+      super(name, oldTTDS);
+
+      this.relatedElementForPropsObj = new WeakMap();
+
+      this.styleHook = new PropertyHook(
+        "HTMLElement.prototype.style",
+        {
+          onGetter: (element, css2Properties) => {
+            this.relatedElementForPropsObj.set(css2Properties, element);
+            return css2Properties;
+          }
+        }
+      );
+
+      this.propertyNameHooks = {};
+    }
+
+    activate() {
+      this.styleHook.enable();
+      for (const hook of Object.values(this.propertyNameHooks)) {
+        hook.enable();
+      }
+    }
+
+    deactivate() {
+      this.disable();
+      this.styleHook.disable();
+      for (const hook of Object.values(this.propertyNameHooks)) {
+        hook.disable();
+      }
+    }
+
+    registerStylePropertyListener(listener, prop) {
+      if (this.propertyNameHooks[prop]) {
+        return;
+      }
+
+      this.propertyNameHooks[prop] = new PropertyHook(
+        `CSS2Properties.prototype.${prop}`,
+        {
+          enabled: true,
+          onGetter: (obj, value) => {
+            if (this.relatedElementForPropsObj.has(obj)) {
+              const element = this.relatedElementForPropsObj.get(obj);
+              value = this._onGet(prop, element, value);
+            }
+            return value;
+          },
+          onSetter: (obj, newValue) => {
+            if (this.relatedElementForPropsObj.has(obj)) {
+              const element = this.relatedElementForPropsObj.get(obj);
+              newValue = this._onSet(prop, element, newValue);
+            }
+            return newValue;
+          },
+        }
+      );
+    }
+
+    setOptions(opts) {
+      if ("enabled" in opts) {
+        this.enabled = !!opts.enabled;
+      }
+
+      this.onGet = getActionFor(opts.onGet) || function(prop, elem, value) {
+        LogTrace(elem, `.style.${prop}`, Messages.LogGetterAccessed, value);
+        return value;
+      };
+      this.onSet = getActionFor(opts.onSet) || function(prop, elem, value) {
+        LogTrace(elem, `.style.${prop}`, Messages.LogSetterCalled, value);
+        return value;
+      };
+      if (opts.properties) {
+        this.properties = getCommaSeparatedList(opts.properties);
+      }
+      if (opts.selector) {
+        this.selector = opts.selector;
+      }
+      if (opts.onlyValues) {
+        this.onlyValues = matchRegex(opts.onlyValues) ||
+                          matchCommaSeparatedList(opts.onlyValues);
+      }
+      for (const prop of this.properties) {
+        this.registerStylePropertyListener(this, prop);
+      }
+    }
+
+    enable() {
+      this.enabled = true;
+    }
+
+    disable() {
+      this.enabled = false;
+    }
+
+    _matches(prop, elem, value) {
+      return (!this.properties || this.properties.includes(prop)) &&
+             (!this.selector || elem.matches(this.selector)) &&
+             (!this.onlyValues || this.onlyValues.match(value));
+    }
+
+    _onGet(prop, elem, returnValue) {
+      if (this.enabled && this.onGet && this._matches(prop, elem, returnValue)) {
+        returnValue = this.onGet(prop, elem, returnValue);
+      }
+      return returnValue;
+    }
+
+    _onSet(prop, elem, newValue) {
+      if (this.enabled && this.onSet && this._matches(prop, elem, newValue)) {
+        newValue = this.onSet(prop, elem, newValue);
+      }
+      return newValue;
+    }
+  }
+
+  class XHRandFetchObserver extends TTDSHook {
+    constructor(name, oldTTDS) {
+      super(name, oldTTDS);
+
       this.fetchHook = new PropertyHook(
         "window.fetch",
         {
@@ -832,6 +910,10 @@ function pageScript(Config, Messages) {
       );
     }
 
+    deactivate() {
+      this.disable();
+    }
+
     setOptions(opts) {
       if ("enabled" in opts) {
         if (opts.enabled) {
@@ -868,11 +950,16 @@ function pageScript(Config, Messages) {
     }
   }
 
-  class GeolocationHook {
-    constructor() {
-      this.enabled = false;
+  class GeolocationHook extends TTDSHook {
+    constructor(name, oldTTDS) {
+      super(name, oldTTDS);
+
       this.watchers = {};
       this.nextWatcherId = 1;
+    }
+
+    deactivate() {
+      this.disable();
     }
 
     getCoords() {
@@ -943,8 +1030,10 @@ function pageScript(Config, Messages) {
     }
   }
 
-  class LanguagesHook {
-    constructor() {
+  class LanguagesHook extends TTDSHook {
+    constructor(name, oldTTDS) {
+      super(name, oldTTDS);
+
       this.languageHook = new PropertyHook("navigator.language", {
         onGetter: (obj, value) => {
           return this.language || value;
@@ -955,6 +1044,10 @@ function pageScript(Config, Messages) {
           return this.languages || value;
         }
       });
+    }
+
+    deactivate() {
+      this.disable();
     }
 
     setOptions(opts) {
@@ -989,9 +1082,15 @@ function pageScript(Config, Messages) {
     }
   }
 
-  class SimpleOverrides {
-    constructor() {
+  class SimpleOverrides extends TTDSHook {
+    constructor(name, oldTTDS) {
+      super(name, oldTTDS);
+
       this.overrides = [];
+    }
+
+    deactivate() {
+      this.disable();
     }
 
     setOptions(opts) {
@@ -1031,9 +1130,15 @@ function pageScript(Config, Messages) {
     }
   }
 
-  class SimpleHookList {
-    constructor() {
+  class SimpleHookList extends TTDSHook {
+    constructor(name, oldTTDS) {
+      super(name, oldTTDS);
+
       this.hooks = [];
+    }
+
+    deactivate() {
+      this.disable();
     }
 
     setOptions(opts) {
@@ -1113,7 +1218,11 @@ function pageScript(Config, Messages) {
       return origEval(o);
     }
 
-    return class DisableDebugger {
+    return class DisableDebugger extends TTDSHook {
+      deactivate() {
+        this.disable();
+      }
+
       setOptions(opts) {
         if ("enabled" in opts) {
           if (opts.enabled) {
@@ -1140,215 +1249,208 @@ function pageScript(Config, Messages) {
     };
   }());
 
-  const FunctionBind = (function() {
-    return class FunctionBind {
-      constructor() {
-        this.enabled = false;
-        const me = this;
+  class FunctionBind extends TTDSHook {
+    activate() {
+      this.enabled = false;
+      const me = this;
 
-        Function.prototype.bind = function(oThis) {
-          if (typeof this !== "function") {
-            // closest thing possible to the ECMAScript 5
-            // internal IsCallable function
-            throw new TypeError(Messages.InvalidFunctionBind);
-          }
-
-          const aArgs   = Array.prototype.slice.call(arguments, 1);
-          const fToBind = this;
-          const fNOP    = function() {};
-          const fBound  = function() {
-            if (me.enabled) {
-              LogTrace(Messages.LogBoundFunctionCalled, fToBind.toString());
-            }
-            return fToBind.apply(this instanceof fNOP
-                   ? this
-                   : oThis,
-                   aArgs.concat(Array.prototype.slice.call(arguments)));
-          };
-
-          if (this.prototype) {
-            // Function.prototype doesn't have a prototype property
-            fNOP.prototype = this.prototype;
-          }
-          fBound.prototype = new fNOP();
-
-          fBound._boundFunction = fToBind;
-          fBound._boundArguments = aArgs;
-
-          return fBound;
-        };
-      }
-
-      setOptions(opts) {
-        if ("enabled" in opts) {
-          this.enabled = !!opts.enabled;
+      Function.prototype.bind = function(oThis) {
+        if (typeof this !== "function") {
+          // closest thing possible to the ECMAScript 5
+          // internal IsCallable function
+          throw new TypeError(Messages.InvalidFunctionBind);
         }
-      }
 
-      enable() {
-        this.enabled = true;
-      }
+        const aArgs   = Array.prototype.slice.call(arguments, 1);
+        const fToBind = this;
+        const fNOP    = function() {};
+        const fBound  = function() {
+          if (me.enabled) {
+            LogTrace(Messages.LogBoundFunctionCalled, fToBind.toString());
+          }
+          return fToBind.apply(this instanceof fNOP
+                 ? this
+                 : oThis,
+                 aArgs.concat(Array.prototype.slice.call(arguments)));
+        };
 
-      disable() {
-        this.enabled = false;
-      }
-    };
-  }());
+        if (this.prototype) {
+          // Function.prototype doesn't have a prototype property
+          fNOP.prototype = this.prototype;
+        }
+        fBound.prototype = new fNOP();
 
-  class IgnoredBackgroundScriptHook {
+        fBound._boundFunction = fToBind;
+        fBound._boundArguments = aArgs;
+
+        return fBound;
+      };
+    }
+
+    deactivate() {
+      this.disable();
+    }
+
+    setOptions(opts) {
+      if ("enabled" in opts) {
+        this.enabled = !!opts.enabled;
+      }
+    }
+
+    enable() {
+      this.enabled = true;
+    }
+
+    disable() {
+      this.enabled = false;
+    }
+  }
+
+  class IgnoredBackgroundScriptHook extends TTDSHook {
     setOptions() {}
     enable() {}
     disable() {}
   }
 
-  const Hooks = (function() {
-    const hooks = {};
 
-    return function Hooks(name) {
-      if (!hooks[name]) {
-        switch (name) {
-          case "ObserveXHRandFetch":
-            hooks[name] = new XHRandFetchObserver();
-            break;
-          case "ElementCreation":
-            hooks[name] = new ElementCreatedHook();
-            break;
-          case "ElementDetection":
-            hooks[name] = new ElementDetectionHook();
-            break;
-          case "EventListener":
-            hooks[name] = new EventListenerHook();
-            break;
-          case "StyleProperties":
-            hooks[name] = new StyleListenerHook();
-            break;
-          case "UserAgentOverrides":
-            hooks[name] = new SimpleOverrides();
-            break;
-          case "DisableDebugger":
-            hooks[name] = new DisableDebugger();
-            break;
-          case "FunctionBind":
-            hooks[name] = new FunctionBind();
-            break;
-          case "Geolocation":
-            hooks[name] = new GeolocationHook();
-            break;
-          case "OverrideLanguages":
-            hooks[name] = new LanguagesHook();
-            break;
-          case "DetectUAChecks":
-          case "EventFeatures":
-          case "Scrolling":
-          case "DocumentWrite":
-          case "InputsAndLinks":
-          case "MediaElements":
-          case "Scheduling":
-          case "ShadowDOM":
-            hooks[name] = new SimpleHookList();
-            break;
-          case "CORSBypass":
-          case "OverrideRequestHeaders":
-          case "OverrideNetworkRequests":
-            hooks[name] = new IgnoredBackgroundScriptHook();
-            break;
-          default:
-            return undefined;
-        }
-      }
+  // We return a message port back to the outer content script, so we can
+  // securely with it without polluting the window's namespace.
+  const channel = new MessageChannel();
 
-      return hooks[name];
-    };
-  }());
-
-  function setOverrides(config) {
-    gConfig = config;
-    for (const [name, options] of Object.entries(config || {})) {
-      const hook = Hooks(name);
-      if (hook) {
-        hook.setOptions(options);
-      }
-    }
+  // If there is an old instance of TTDS we're replacing, then first
+  // deactivate it so it reverts its various hooks.
+  const oldInstance = window[UUID];
+  if (oldInstance) {
+    oldInstance.deactivate();
   }
 
-  // expose an API object which requires a secret key that is logged to the
+  // Expose an API object which requires a secret key that is logged to the
   // console, to help ease configuration when using the remote devtools.
-  const Tinker = (function() {
-    function Tinker(name) {
-      if (Config.apiPermissionDenied) {
-        return undefined;
-      }
-
-      if (!Config.apiPermissionGranted) {
-        if (name.toString() === Config.apiKey) {
-          Config.apiPermissionGranted = true;
-          channel.port1.postMessage({apiPermissionGranted: true});
-          return "OK";
+  const Tinker = {
+    activate: () => {
+      for (const hook of Object.values(Tinker)) {
+        if (hook.activate) {
+          hook.activate();
         }
-        Config.apiPermissionDenied = true;
-        channel.port1.postMessage({apiPermissionDenied: true});
+      }
+    },
+
+    deactivate: () => {
+      for (const hook of Object.values(Tinker)) {
+        if (hook.deactivate) {
+          hook.deactivate();
+        }
+      }
+    },
+
+    // If TTDS is restarted, then its AllowEvalsToken will change.
+    // We presume it was restarted because it's being upgraded,
+    // and disallow reconnecting to this instance.
+    reconnect: config => {
+      if (Config.AllowEvalsToken !== config.AllowEvalsToken) {
+        Config.AllowEvalsToken = config.AllowEvalsToken;
         return undefined;
       }
+      Tinker.replaceConfig(config);
+      return channel.port2;
+    },
 
-      const hook = Hooks(name);
-      if (!hook) {
-        throw new Error(Messages.apiNoSuchHook.replace("HOOK", name));
+    getConfig: () => {
+      return Config;
+    },
+
+    replaceConfig: config => {
+      Config = config;
+      for (const [name, options] of Object.entries(config || {})) {
+        if (Tinker[name]) {
+          Tinker[name].setOptions(options);
+        }
       }
-      return {
-        check: () => {
-          return gConfig[name];
-        },
-        update: opts => {
-          if (!("enabled" in opts)) {
-            opts.enabled = true;
-          }
-          const changes = {};
-          changes[name] = opts;
-          channel.port1.postMessage(changes);
-        },
-      };
-    }
-
-    Tinker.maybeAnnounce = () => {
-      if (!Config.apiPermissionGranted && !Config.apiPermissionDenied) {
-        console.info(Messages.apiAnnounceKey.replace("KEY", Config.apiKey));
-      }
-    };
-
-    Tinker.resetAPITest = () => {
-      delete Config.apiPermissionDenied;
-      Tinker.maybeAnnounce();
-    };
-
-    return Tinker;
-  }());
-
-  Tinker.maybeAnnounce();
-
-  window.Tinker = function() {
-    return Tinker.apply(null, arguments);
+    },
   };
 
-  setOverrides(gConfig);
+  function addHook(name, cls) {
+    Tinker[name] = new cls(name, oldInstance);
+    Tinker[name].activate();
+  }
 
-  // return a message port back to the outer content script, so we can securely
-  // communicate with it without polluting the window's namespace.
-  const channel = new MessageChannel();
+  addHook("ObserveXHRandFetch", XHRandFetchObserver);
+  addHook("ElementCreation", ElementCreatedHook);
+  addHook("ElementDetection", ElementDetectionHook);
+  addHook("StyleProperties", StyleListenerHook);
+  addHook("UserAgentOverrides", SimpleOverrides);
+  addHook("DisableDebugger", DisableDebugger);
+  addHook("FunctionBind", FunctionBind);
+  addHook("Geolocation", GeolocationHook);
+  addHook("OverrideLanguages", LanguagesHook);
+  addHook("DetectUAChecks", SimpleHookList);
+  addHook("EventListener", EventListenerHook);
+  addHook("EventFeatures", SimpleHookList);
+  addHook("Scrolling", SimpleHookList);
+  addHook("DocumentWrite", SimpleHookList);
+  addHook("InputsAndLinks", SimpleHookList);
+  addHook("MediaElements", SimpleHookList);
+  addHook("Scheduling", SimpleHookList);
+  addHook("ShadowDOM", SimpleHookList);
+  addHook("CORSBypass", IgnoredBackgroundScriptHook);
+  addHook("OverrideRequestHeaders", IgnoredBackgroundScriptHook);
+  addHook("OverrideNetworkRequests", IgnoredBackgroundScriptHook);
+
+  if (oldInstance) {
+    // Grab the configuration of known hooks, and send it to the
+    // background script so all TTDS UI is updated to match it.
+    const oldConfig = oldInstance.getConfig();
+    const newConfig = {};
+    for (const [name, hook] of Object.entries(Tinker)) {
+      if (hook.update && oldConfig[name]) {
+        newConfig[name] = oldConfig[name];
+      }
+    }
+    if (Object.keys(newConfig).length) {
+      Tinker.replaceConfig(newConfig);
+      channel.port1.postMessage(newConfig);
+    }
+  } else {
+    console.info(Messages.apiAnnounceKey.replace("KEY", UUID));
+    Tinker.replaceConfig(Config);
+  }
+
+  Object.defineProperty(window, UUID, {
+    configurable: true,
+    enumerable: false,
+    value: Tinker,
+  });
+
+  // If we hear no heartbeat from our content-script for 5
+  // seconds, presume that the addon is toast (the script should
+  // reconnect by then if upgrading or restarting).
+  const addonIsStillAlive = (function() {
+    let canary = -1;
+    return function() {
+      gClearTimeout.call(window, canary);
+      canary = gSetTimeout(() => {
+        if (window[UUID] === Tinker) {
+          delete window[UUID];
+        }
+        Tinker.deactivate();
+      }, 5000);
+    };
+  }());
+
   channel.port1.onmessage = event => {
-    const message = JSON.parse(event.data);
-    if (message === "resetAPITest") {
-      Tinker.resetAPITest();
+    const message = event.data;
+    if (message === "addonIsStillAlive") {
+      addonIsStillAlive();
     } else {
-      setOverrides(message);
+      Tinker.replaceConfig(JSON.parse(message));
     }
   };
   return channel.port2;
 }
 
-(function() {
+(function(Config) {
   const Messages = {
     apiAnnounceKey: browser.i18n.getMessage("apiAnnounceKey"),
-    apiNoSuchHook: browser.i18n.getMessage("apiNoSuchHook"),
     LogIgnoringCall: browser.i18n.getMessage("logIgnoringCall"),
     LogIgnoringEvent: browser.i18n.getMessage("logIgnoringEvent"),
     LogElementCreated: browser.i18n.getMessage("logElementCreated"),
@@ -1366,7 +1468,10 @@ function pageScript(Config, Messages) {
     LogBoundFunctionCalled: browser.i18n.getMessage("logBoundFunctionCalled"),
   };
 
-  const port = window.eval(`(${pageScript}(${JSON.stringify(window.Config)},
+  const { UUID } = Config;
+  const existingTTDS = window.wrappedJSObject[UUID];
+  const port = existingTTDS && existingTTDS.reconnect(cloneInto(Config, existingTTDS)) ||
+               window.eval(`(${pageScript}(${JSON.stringify(Config)},
                                            ${JSON.stringify(Messages)}));`);
 
   port.onmessage = msg => {
@@ -1382,4 +1487,8 @@ function pageScript(Config, Messages) {
       port.postMessage(JSON.stringify(message));
     }
   );
-})();
+
+  setInterval(() => {
+    port.postMessage("addonIsStillAlive");
+  }, 1000);
+})(Config);

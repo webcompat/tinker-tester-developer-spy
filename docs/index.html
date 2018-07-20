@@ -70,28 +70,25 @@
 
   <h2 id="consoleAPI">Console API</h2>
 
-  <p>A programmatically-driven console API can be accessed from the developer tools, making it possible to use the remote developer tools to more conveniently set up hooks. However, to prevent its abuse by malicious websites, access to the API must be requested with a secure token that is logged to the console:</p>
+  <p>A programmatically-driven console API can be accessed from the developer tools, making it possible to use the remote developer tools to more conveniently set up hooks. However, it is obfuscated to prevent its abuse by malicious websites. Information on how to access it is logged to the web and browser consoles as follows:</p>
 
   <pre><code>
-    &lt;- TinkerTesterDeveloperSpy API key: 3579031240142907329516953208073795351219
+    &gt;&gt; TinkerTesterDeveloperSpy is now available as window['2c95887e-f107-4d61-a87c-9938b503f4b4']
   </code></pre>
 
-  <p>First request permission to access the API with the most recent key:</p>
+  <p>It may be easier to work with it by first capturing it into a variable in the web console:</p>
 
   <pre><code>
-    &gt;&gt;Tinker("3579031240142907329516953208073795351219");
+    &gt;&gt; let Tinker = window['2c95887e-f107-4d61-a87c-9938b503f4b4']
+  </code></pre>
+
+  <p>The API may be used to update specific hooks programmatically:</p>
+
+  <pre><code>
+    &gt;&gt; Tinker.ObserveXHRandFetch.update({onSend: "log stack trace", onlyURLs: "cart.php", onlyMethods: "POST"});
     &lt;- "OK"
-  </code></pre>
 
-  <p>It is necessary to authenticate after navigating to a new domain, for each new tab, and when restarting the addon, but not after simply reloading the page. If the correct token is not passed the first time, it will be necessary to reload the page or switch to another tab and back in order to try again.</p>
-
-  <p>Once authenticated is successful, the API may be used to update specific hooks programmatically:</p>
-
-  <pre><code>
-    &gt;&gt; Tinker("ObserveXHRandFetch").update({onSend: "log stack trace", onlyURLs: "cart.php", onlyMethods: "POST"});
-    &lt;- undefined
-
-    &gt;&gt; Tinker("ObserveXHRandFetch").check();
+    &gt;&gt; Tinker.ObserveXHRandFetch.check();
     &lt;- Object { onSend: "log stack trace", onlyURLs: "cart.php", onlyMethods: "POST", enabled: true }
   </code></pre>
 
@@ -146,7 +143,7 @@
   </tr><tr>
     <td><img src="xhr_and_fetch.png"></td>
     <td><pre><code>
-Tinker("ObserveXHRandFetch").update({
+Tinker.ObserveXHRandFetch.update({
   onlyMethods: "PUT, DELETE",
   onlyURLs: "cart.php",
   onSend: "start debugger",
@@ -171,7 +168,7 @@ Tinker("ObserveXHRandFetch").update({
   </tr><tr>
     <td><img src="override_network_requests.png"></td>
     <td><pre><code>
-Tinker("OverrideNetworkRequests").update({
+Tinker.OverrideNetworkRequests.update({
   values: {
     redirectURL: {
       "/(.*)\\.webm/": "$1.jpg",
@@ -199,7 +196,7 @@ Tinker("OverrideNetworkRequests").update({
   </tr><tr>
     <td><img src="override_request_headers.png"></td>
     <td><pre><code>
-Tinker("OverrideRequestHeaders").update({
+Tinker.OverrideRequestHeaders.update({
   values: {
     onlyOverride: {
       "Origin": "somewhere.com",
@@ -225,7 +222,7 @@ Tinker("OverrideRequestHeaders").update({
   </tr><tr>
     <td><img src="override_languages.png"></td>
     <td><pre><code>
-Tinker("OverrideLanguages").update({
+Tinker.OverrideLanguages.update({
   languages: "en-GB,en;q=0.8,sv"
 });
     </code></pre></td>
@@ -244,7 +241,7 @@ Tinker("OverrideLanguages").update({
   </tr><tr>
     <td><img src="element_creation.png"></td>
     <td><pre><code>
-Tinker("ElementCreation").update({
+Tinker.ElementCreation.update({
   names: "audio, video",
   onCreated: "log stack trace",
 });
@@ -264,7 +261,7 @@ Tinker("ElementCreation").update({
   </tr><tr>
     <td><img src="element_detection.png"></td>
     <td><pre><code>
-Tinker("ElementDetection").update({
+Tinker.ElementDetection.update({
   selector: "#news > .panel > a[href='#today']",
   onDetected: "log stack trace",
   onLost: "log stack trace",
@@ -285,7 +282,7 @@ Tinker("ElementDetection").update({
   </tr><tr>
     <td><img src="event_listener.png"></td>
     <td><pre><code>
-Tinker("EventListener").update({
+Tinker.EventListener.update({
   selector: "#newsSection .panel a",
   types: "mousedown, touchstart, click",
   onAdded: "log stack trace",
@@ -308,7 +305,7 @@ Tinker("EventListener").update({
   </tr><tr>
     <td><img src="event_features.png"></td>
     <td><pre><code>
-Tinker("EventFeatures").update({
+Tinker.EventFeatures.update({
   properties: {
     "Document.prototype.activeElement": "log stack trace",
   },
@@ -323,7 +320,7 @@ Tinker("EventFeatures").update({
 
   <h3 id="elementStyle">element.style</h3>
 
-  <p>Allows detecting where and when the specified CSS properties (a list or <a href="#regex">regular expression</a>) are being altered using the scripting <code>style</code> API. Can also be limited to detecting when those properties only have given values (a list or regular expression). This can be useful for a wide variety of tasks such as determining when elements are shown or hidden, have their <code>transform</code> style changed, or even when a property unsupported by Firefox like <code>zoom</code> or <code>webkitOverflowScrolling</code> is being accessed or altered.</p>
+  <p>Allows detecting where and when the specified CSS properties (a comma-separated list) are being altered using the scripting <code>style</code> API. Can also be limited to detecting when those properties only have given values (a list or regular expression). This can be useful for a wide variety of tasks such as determining when elements are shown or hidden, have their <code>transform</code> style changed, or even when a property unsupported by Firefox like <code>zoom</code> or <code>webkitOverflowScrolling</code> is being accessed or altered.</p>
 
   <table><caption>
     Trying to discover where a page is hiding and showing a given element.
@@ -333,7 +330,7 @@ Tinker("EventFeatures").update({
   </tr><tr>
     <td><img src="element_style.png"></td>
     <td><pre><code>
-Tinker("StyleProperties").update({
+Tinker.StyleProperties.update({
   onlyValues: "block",
   properties: "display",
   selector: ".panel &gt; p",
@@ -356,7 +353,7 @@ Tinker("StyleProperties").update({
   </tr><tr>
     <td><img src="detect_sniffing.png"></td>
     <td><pre><code>
-Tinker("DetectUAChecks").update({
+Tinker.DetectUAChecks.update({
   "navigator.appVersion": "log stack trace",
   "navigator.platform": "log stack trace",
   "navigator.userAgent": "log stack trace",
@@ -379,7 +376,7 @@ Tinker("DetectUAChecks").update({
   </tr><tr>
     <td><img src="spoof_ua.png"></td>
     <td><pre><code>
-Tinker("UserAgentOverrides").update({
+Tinker.UserAgentOverrides.update({
   selected: "uaChromeAndroidTablet"
 })
     </code></pre></td>
@@ -398,7 +395,7 @@ Tinker("UserAgentOverrides").update({
   </tr><tr>
     <td><img src="scrolling.png"></td>
     <td><pre><code>
-Tinker("Scrolling").update({
+Tinker.Scrolling.update({
   methods: {
     "Element.prototype.scroll": "log stack trace",
     "Element.prototype.scrollBy": "log stack trace",
@@ -435,7 +432,7 @@ Tinker("Scrolling").update({
   </tr><tr>
     <td><img src="document_write.png"></td>
     <td><pre><code>
-Tinker("DocumentWrite").update({
+Tinker.DocumentWrite.update({
   methods: {
     "document.write": "ignore",
     "document.writeln": "ignore",
@@ -457,7 +454,7 @@ Tinker("DocumentWrite").update({
   </tr><tr>
     <td><img src="inputs_links.png"></td>
     <td><pre><code>
-Tinker("InputsAndLinks").update({
+Tinker.InputsAndLinks.update({
   methods: {
     "HTMLAnchorElement.prototype.click": "start debugger",
   },
@@ -482,7 +479,7 @@ Tinker("InputsAndLinks").update({
   </tr><tr>
     <td><img src="audio_video.png"></td>
     <td><pre><code>
-Tinker("MediaElements").update({
+Tinker.MediaElements.update({
   methods: {
     "HTMLVideoElement.prototype.pause": "log stack trace",
     "HTMLVideoElement.prototype.play": "log stack trace",
@@ -507,7 +504,7 @@ Tinker("MediaElements").update({
   </tr><tr>
     <td><img src="task_scheduling.png"></td>
     <td><pre><code>
-Tinker("Scheduling").update({
+Tinker.Scheduling.update({
   methods: {
     "window.requestAnimationFrame": "log stack trace",
     "window.setImmediate": "log stack trace",
@@ -534,7 +531,7 @@ Tinker("Scheduling").update({
   </tr><tr>
     <td><img src="shadow_dom.png"></td>
     <td><pre><code>
-Tinker("ShadowDOM").update({
+Tinker.ShadowDOM.update({
   methods: {
     "Element.prototype.attachShadow": "hide",
     "Element.prototype.createShadowRoot": "log stack trace",
@@ -558,7 +555,7 @@ Tinker("ShadowDOM").update({
   </tr><tr>
     <td><img src="geolocation.png"></td>
     <td><pre><code>
-Tinker("Geolocation").update({
+Tinker.Geolocation.update({
   latitude: 30,
   longitude: 10,
   accuracy: 10,
@@ -582,7 +579,7 @@ Tinker("Geolocation").update({
   </tr><tr>
     <td><img src="disable_debugger.png"></td>
     <td><pre><code>
-Tinker("DisableDebugger").update({
+Tinker.DisableDebugger.update({
   enabled: true,
 });
     </code></pre></td>
@@ -602,7 +599,7 @@ Tinker("DisableDebugger").update({
   </tr><tr>
     <td><img src="function_bind.png"></td>
     <td><pre><code>
-Tinker("FunctionBind").update({
+Tinker.FunctionBind.update({
   enabled: true,
 });
     </code></pre></td>
@@ -620,7 +617,7 @@ Tinker("FunctionBind").update({
   </tr><tr>
     <td><img src="cors_bypass.png"></td>
     <td><pre><code>
-Tinker("CORSBypass").update({
+Tinker.CORSBypass.update({
   enabled: true,
 });
     </code></pre></td>

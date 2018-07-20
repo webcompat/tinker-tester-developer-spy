@@ -98,13 +98,6 @@ browser.tabs.onActivated.addListener(activeInfo => {
   const {tabId} = activeInfo;
   const tabConfig = gTabConfigs[tabId];
 
-  // Let the user try authenticating the API again if
-  // they switch tabs or reload.
-  if (tabConfig) {
-    delete tabConfig.apiPermissionDenied;
-    browser.tabs.sendMessage(tabId, "resetAPITest");
-  }
-
   onActiveTabConfigUpdated(tabConfig);
 
   checkIfActiveOnThisTab(tabConfig);
@@ -131,7 +124,6 @@ function onMessage(message, sender) {
     // active tab's config.
     browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
       let tabConfig;
-      let haveInterestingChanges = false;
 
       if (tabs[0]) {
         // Fold the changes into our cached config for the tab, so that if we
@@ -143,33 +135,17 @@ function onMessage(message, sender) {
         tabConfig = gTabConfigs[tabId];
         const changes = message.tabConfigChanges;
         for (const [hookName, options] of Object.entries(changes) || {}) {
-          // We don't have to do anything if there are only changes to
-          // the tab's apiKey or apiPermissions (the page script will
-          // have handled it already, we just have to update the config).
-          if (hookName.startsWith("api")) {
-            if (options) {
-              tabConfig[hookName] = options;
-            } else {
-              delete tabConfig[hookName];
-            }
-          } else {
-            haveInterestingChanges = true;
-            tabConfig[hookName] = Object.assign(tabConfig[hookName] || {}, options);
-          }
+          tabConfig[hookName] = Object.assign(tabConfig[hookName] || {}, options);
         }
 
-        if (haveInterestingChanges) {
-          onActiveTabConfigUpdated(tabConfig);
+        onActiveTabConfigUpdated(tabConfig);
 
-          // Also send the changes to the tab's content script so it can act on them.
-          browser.tabs.sendMessage(tabId, changes);
-        }
+        // Also send the changes to the tab's content script so it can act on them.
+        browser.tabs.sendMessage(tabId, changes);
       }
 
-      if (haveInterestingChanges) {
-        checkIfActiveOnThisTab(tabConfig);
-        portsToPanels.broadcast({tabConfig});
-      }
+      checkIfActiveOnThisTab(tabConfig);
+      portsToPanels.broadcast({tabConfig});
     });
   }
   return undefined;

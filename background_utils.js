@@ -6,6 +6,8 @@
 
 /* global browser, UnsafeContentScriptEvals */
 
+const UUID = new URL(browser.runtime.getURL("/")).host;
+
 function checkIfActiveOnThisTab(tabConfig) {
   let active = false;
   for (const setting of Object.values(tabConfig || {})) {
@@ -38,7 +40,7 @@ const setContentScript = (function() {
       currentContentScript = undefined;
     }
 
-    const config = Object.assign(_config, {AllowEvalsToken, apiKey: AllowEvalsToken});
+    const config = Object.assign(_config, {AllowEvalsToken, UUID});
 
     const scripts = [{file: "common.js"},
                      {code: `window.Config = ${JSON.stringify(config)};`},

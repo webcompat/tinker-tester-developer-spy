@@ -7,10 +7,7 @@
   },
 
   "apiAnnounceKey": {
-    "message": "TinkerTesterDeveloperSpy API key: KEY"
-  },
-  "apiNoSuchHook": {
-    "message": "No such hook: HOOK"
+    "message": "TinkerTesterDeveloperSpy is available as window['KEY']"
   },
 
   "bgBypassingCORSHeader": {
@@ -155,10 +152,10 @@
     "message": "Function.prototype.bind requires a callable object"
   },
   "logListenerAddedOn": {
-    "message": "listener added on"
+    "message": "listener add attempted on"
   },
   "logListenerRemovedFrom": {
-    "message": "listener removed from"
+    "message": "listener removal attempted from"
   },
   "logSetterCalled": {
     "message": "set to"

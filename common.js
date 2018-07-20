@@ -243,22 +243,19 @@ window.ScriptOverrideHooks = {
   },
 };
 
-const matchRegex = (function() {
-  const RE = /^\/(.*)\/([gimuy]*)$/;
-  return function getRegex(str) {
-    const isRE = str.match(RE);
-    if (isRE) {
-      try {
-        const RE = new RegExp(isRE[1], isRE[2]);
-        return {
-          match: str => str.match(RE),
-          replace: (str, rep) => str.replace(RE, rep),
-        };
-      } catch (_) { }
-    }
-    return undefined;
-  };
-})();
+function matchRegex(str) {
+  const isRE = str.match(/^\/(.*)\/([gimuy]*)$/);
+  if (isRE) {
+    try {
+      const RE = new RegExp(isRE[1], isRE[2]);
+      return {
+        match: str => str.match(RE),
+        replace: (str, rep) => str.replace(RE, rep),
+      };
+    } catch (_) { }
+  }
+  return undefined;
+}
 
 function getCommaSeparatedList(str) {
   const vals = str || "";
@@ -282,4 +279,3 @@ function matchString(str) {
     replace: (str, rep) => rep,
   };
 }
-
