@@ -192,6 +192,13 @@ html li:nth-child(odd) {
   padding: 0.25em 0.5em;
 }
 
+.details>div {
+  text-align: left;
+}
+.details>div>input[type="checkbox"] {
+  margin-right: 0.5em;
+}
+
 .details>blockquote {
   color: red;
   font-weight: bold;

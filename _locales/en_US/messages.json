@@ -51,6 +51,10 @@
     "message": "On Set"
   },
 
+  "flagSyncXHRPolyfix": {
+    "message": "Enable sync XHR polyfix"
+  },
+
   "hookLabelCORSBypass": {
     "message": "Bypass Site CORS settings"
   },

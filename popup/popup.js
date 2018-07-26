@@ -157,6 +157,10 @@ function handleClick(e) {
               break;
           }
         }
+        for (const cb of document.querySelectorAll(".details input[type='checkbox']")) {
+          if (!info.flags) { info.flags = {}; }
+          info.flags[cb.name] = cb.checked;
+        }
         if (info.enabled) {
           relatedLI.classList.add("selected");
           addUnsetButton(relatedLI, name);
@@ -508,6 +512,10 @@ function redrawDetails(option) {
     }
   }
 
+  if (hook.flags) {
+    addFlags(hook.flags, frag, optConfig);
+  }
+
   let button = document.createElement("button");
   button.setAttribute("data-action", "apply");
   button.appendChild(document.createTextNode(isActive ? Messages.UpdateHook
@@ -528,4 +536,23 @@ function redrawDetails(option) {
 
   details.innerHTML = "";
   details.appendChild(frag);
+}
+
+function addFlags(flags, frag, optConfig) {
+  for (const [name, msg] of Object.entries(flags)) {
+    const div = document.createElement("div");
+    frag.appendChild(div);
+    const cb = document.createElement("input");
+    cb.id  = name;
+    cb.name = name;
+    cb.type = "checkbox";
+    if (optConfig.flags && optConfig.flags[name]) {
+      cb.checked = true;
+    }
+    div.appendChild(cb);
+    const label = document.createElement("label");
+    label.setAttribute("for", name);
+    label.appendChild(document.createTextNode(msg));
+    div.appendChild(label);
+  }
 }

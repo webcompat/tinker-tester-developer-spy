@@ -135,8 +135,10 @@
 
   <p>Can be restricted to detecting requests using only specific HTTP methods (a case-insensitive, comma-separated list or a <a href="#regex">regular expression</a>) or sent to specific URL (or a regular expression matching URLs).</p>
 
+  <p>Also has an option to enable a polyfill to help test whether a <a href="https://bugzil.la/697151">specific interoperability issue</a> regarding event ordering with synchronous XMLHttpRequests may be causing problems on a page.</p>
+
   <table><caption>
-    Starting the debugger on any PUT or DELETE request to a URL containing <code>cart.php</code>
+    Starting the debugger on any PUT or DELETE request to a URL containing <code>cart.php</code> while checking for XHR event-ordering interop issues.
   </caption><tr>
     <th>User-interface</th>
     <th>Console API</th>
@@ -147,6 +149,9 @@ Tinker.ObserveXHRandFetch.update({
   onlyMethods: "PUT, DELETE",
   onlyURLs: "cart.php",
   onSend: "start debugger",
+  flags: {
+    syncXHRPolyfix: true,
+  },
 });
     </code></pre></td>
   </tr></table>

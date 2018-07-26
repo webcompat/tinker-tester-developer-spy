@@ -11,6 +11,7 @@ window.ScriptOverrideHooks = {
     options: {onlyMethods: browser.i18n.getMessage("optionOnlyHTTPMethods"),
               onlyURLs: browser.i18n.getMessage("optionOnlyURLs")},
     callbacks: {onSend: browser.i18n.getMessage("callbackOnSend")},
+    flags: {syncXHRPolyfix: browser.i18n.getMessage("flagSyncXHRPolyfix")},
   },
   "OverrideNetworkRequests": {
     userValues: {
