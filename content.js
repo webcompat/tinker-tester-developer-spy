@@ -45,14 +45,24 @@ function pageScript(Config, Messages) {
     } else if (code === "log stack trace") {
       return undefined;
     } else if (code === "ignore") {
-      return (obj, args) => {
-        LogTrace(Messages.LogIgnoringCall, obj, args);
+      return (obj, origFn, args) => {
+        LogTrace(Messages.LogIgnoringCall, obj, origFn, args);
         return null;
       };
     } else if (code === "nothing") {
       return function() {};
     }
     return new Function(code + "//" + Config.AllowEvalsToken);
+  }
+
+  function doCall(thisObj, fn, args) {
+    if (!fn) {
+      return undefined;
+    }
+    if (new.target) {
+      return new (Function.prototype.bind.apply(fn, args));
+    }
+    return fn.apply(thisObj, args);
   }
 
   class PropertyHook {
@@ -65,9 +75,9 @@ function pageScript(Config, Messages) {
     }
 
     setOptions(opts) {
-      this.onGetter = opts.onGetter || ((o, rv) => rv);
-      this.onSetter = opts.onSetter || ((o, nv) => nv);
-      this.onCalled = opts.onCalled || ((o, a) => { return o.apply(this, a); });
+      this.onGetter = opts.onGetter || ((obj, origGetter, args) => doCall(obj, origGetter, args));
+      this.onSetter = opts.onSetter || ((obj, origSetter, args) => doCall(obj, origSetter, args));
+      this.onCalled = opts.onCalled || ((obj, origFn, args) => doCall(obj, origFn, args));
       if (opts.enabled) {
         this.enable();
       } else {
@@ -157,22 +167,18 @@ function pageScript(Config, Messages) {
       return Object.getOwnPropertyDescriptor(obj, name);
     }
 
-    wrapValue(value) {
-      if (typeof value === "function") {
-        const me = this;
-        return function() {
-          let retval = me.onCalled(value, arguments, this);
-          if (retval === undefined) {
-            if (new.target) {
-              retval = new (Function.prototype.bind.apply(value, arguments));
-            } else {
-              retval = value.apply(this, arguments);
-            }
-          }
-          return retval;
-        };
-      }
-      return value;
+    wrapGetterWithCallCheck(getter) {
+      const me = this;
+      return function() {
+        const that = this;
+        const got = me.onGetter(that, getter, arguments);
+        if (typeof got === "function") {
+          return function() {
+            return me.onCalled(that, got, arguments);
+          };
+        }
+        return got;
+      };
     }
 
     overrideProperty(obj, name) {
@@ -184,30 +190,28 @@ function pageScript(Config, Messages) {
         configurable: true, // So reloading the addon doesn't throw an error.
         enumerable: oldprop && oldprop.enumerable || false,
       };
-      if (oldprop && (oldprop.get || oldprop.set)) {
-        const me = this;
-        newprop.get = function() {
-          return me.onGetter(this, oldprop.get.call(this));
-        };
-        newprop.set = function(newValue) {
-          newValue = me.onSetter(this, newValue, oldprop.get.call(this));
-          oldprop.set.call(this, newValue);
-        };
-      } else { // value, not get/set (or no such property)
-        const me = this;
-        newprop.get = function() {
-          const curValue = oldprop && oldprop.value &&
-                           me.wrapValue(oldprop.value);
-          return me.onGetter(this, curValue);
-        };
-        if (!oldprop || oldprop.writable) {
-          newprop.set = function(val) {
-            const newValue = me.onSetter(this, me.wrapValue(val));
-            if (oldprop) {
-              oldprop.value = newValue;
-            }
+      const me = this;
+      if (oldprop) {
+        const {value, get, set} = oldprop;
+        if (typeof value === "function") {
+          newprop.value = function() {
+            return me.onCalled(this, value, arguments);
+          };
+        } else if (value !== undefined) {
+          newprop.value = function() {
+            return me.onGetter(this, value, arguments);
+          };
+        } else { // must be get+set
+          newprop.get = this.wrapGetterWithCallCheck(get);
+          newprop.set = function() {
+            return me.onSetter(this, set, arguments);
           };
         }
+      } else {
+        newprop.get = this.wrapGetterWithCallCheck(undefined);
+        newprop.set = function() {
+          return me.onSetter(this, undefined, arguments);
+        };
       }
       Object.defineProperty(obj, name, newprop);
     }
@@ -322,44 +326,70 @@ function pageScript(Config, Messages) {
       super(name, oldTTDS);
 
       this.audioConstructorHook = new PropertyHook("window.Audio", {
-        onCalled: (fn, args) => {
-          this._onCreated("audio");
+        onCalled: (win, origFn, args) => {
+          const rv = this._onCreated("audio");
+          if (rv !== undefined) {
+            return rv;
+          }
+          return doCall(win, origFn, args);
         },
       });
       this.createElementHook = new PropertyHook("document.createElement", {
-        onCalled: (fn, args) => {
+        onCalled: (doc, origFn, args) => {
           const name = args[0].toLowerCase();
-          this._onCreated(name);
+          const rv = this._onCreated(name);
+          if (rv !== undefined) {
+            return rv;
+          }
+          return doCall(doc, origFn, args);
         },
       });
       this.createElementNSHook = new PropertyHook("document.createElementNS", {
-        onCalled: (fn, args) => {
+        onCalled: (doc, origFn, args) => {
           const name = args[0].toLowerCase();
-          this._onCreated(name);
+          const rv = this._onCreated(name);
+          if (rv !== undefined) {
+            return rv;
+          }
+          return doCall(doc, origFn, args);
         },
       });
       this.importNodeHook = new PropertyHook("document.importNode", {
-        onCalled: (fn, args, thisObj) => {
+        onCalled: (doc, origFn, args) => {
           const name = args[0].nodeName.toLowerCase();
-          this._onCreated(name);
+          const rv = this._onCreated(name);
+          if (rv !== undefined) {
+            return rv;
+          }
+          return doCall(doc, origFn, args);
         },
       });
       this.cloneNodeHook = new PropertyHook("Element.prototype.cloneNode", {
-        onCalled: (fn, args, thisObj) => {
-          const name = thisObj.nodeName.toLowerCase();
-          this._onCreated(name);
+        onCalled: (elem, origFn, args) => {
+          const name = elem.nodeName.toLowerCase();
+          const rv = this._onCreated(name);
+          if (rv !== undefined) {
+            return rv;
+          }
+          return doCall(elem, origFn, args);
         },
       });
       this.innerHTMLHook = new PropertyHook("Element.prototype.innerHTML", {
-        onSetter: (obj, html) => {
-          this._onHTML(html);
-          return html;
+        onSetter: (elem, origSetter, args) => {
+          const rv = this._onHTML(args[0]);
+          if (rv !== undefined) {
+            return rv;
+          }
+          return doCall(elem, origSetter, args);
         },
       });
       this.outerHTMLHook = new PropertyHook("Element.prototype.outerHTML", {
-        onSetter: (obj, html) => {
-          this._onHTML(html);
-          return html;
+        onSetter: (elem, origSetter, args) => {
+          const rv = this._onHTML(args[0]);
+          if (rv !== undefined) {
+            return rv;
+          }
+          return doCall(elem, origSetter, args);
         },
       });
     }
@@ -699,9 +729,10 @@ function pageScript(Config, Messages) {
         if (!handler) { // no handler, so this call will fizzle anyway
           return undefined;
         }
-        const proxy = this.handlerProxies.get(handler) || (event => {
-          return this.targetInstance.onEvent(event, handler);
-        });
+        const me = this;
+        const proxy = this.handlerProxies.get(handler) || function(event) {
+          return me.targetInstance.onEvent(this, event, handler);
+        };
         const returnValue = this.oldAEL.call(elem, type, proxy, options);
         this.handlerProxies.set(handler, proxy);
         return returnValue;
@@ -717,11 +748,11 @@ function pageScript(Config, Messages) {
           const proxy = this.handlerProxies.get(handler);
           this.oldREL.call(elem, type, proxy, options);
         } else {
-          this.oldREL.apply(elem, arguments);
+          this.oldREL.call(elem, type, handler, options);
         }
       }
 
-      onEvent(event, originalHandler) {
+      onEvent(thisObj, event, originalHandler) {
         let stopEvent = false;
         for (const rule of this.rules) {
           if (rule._onEvent(event, originalHandler) === false) {
@@ -730,9 +761,9 @@ function pageScript(Config, Messages) {
         }
         if (!stopEvent) {
           if (originalHandler.handleEvent) {
-            return originalHandler.handleEvent(event);
+            return originalHandler.handleEvent.call(thisObj, event);
           }
-          return originalHandler.apply(this, arguments);
+          return originalHandler.call(thisObj, event);
         }
         return undefined;
       }
@@ -753,8 +784,9 @@ function pageScript(Config, Messages) {
       this.styleHook = new PropertyHook(
         "HTMLElement.prototype.style",
         {
-          onGetter: (element, css2Properties) => {
-            this.relatedElementForPropsObj.set(css2Properties, element);
+          onGetter: (elem, origGetter, args) => {
+            const css2Properties = doCall(elem, origGetter, args);
+            this.relatedElementForPropsObj.set(css2Properties, elem);
             return css2Properties;
           }
         }
@@ -787,19 +819,25 @@ function pageScript(Config, Messages) {
         `CSS2Properties.prototype.${prop}`,
         {
           enabled: true,
-          onGetter: (obj, value) => {
-            if (this.relatedElementForPropsObj.has(obj)) {
-              const element = this.relatedElementForPropsObj.get(obj);
-              value = this._onGet(prop, element, value);
+          onGetter: (props, origGetter, args) => {
+            if (this.relatedElementForPropsObj.has(props)) {
+              const elem = this.relatedElementForPropsObj.get(props);
+              const rv = this._onGet(prop, elem, args[0]);
+              if (rv !== undefined) {
+                return rv;
+              }
             }
-            return value;
+            return doCall(props, origGetter, args);
           },
-          onSetter: (obj, newValue) => {
-            if (this.relatedElementForPropsObj.has(obj)) {
-              const element = this.relatedElementForPropsObj.get(obj);
-              newValue = this._onSet(prop, element, newValue);
+          onSetter: (props, origSetter, args) => {
+            if (this.relatedElementForPropsObj.has(props)) {
+              const elem = this.relatedElementForPropsObj.get(props);
+              const replacement = this._onSet(prop, elem, args[0]);
+              if (replacement !== undefined) {
+                return doCall(props, origSetter, [replacement]);
+              }
             }
-            return newValue;
+            return doCall(props, origSetter, args);
           },
         }
       );
@@ -869,7 +907,7 @@ function pageScript(Config, Messages) {
       this.fetchHook = new PropertyHook(
         "window.fetch",
         {
-          onCalled: (obj, args) => {
+          onCalled: (win, origFetch, args) => {
             const method = ((args[1] || {}).method || "get").toLowerCase();
             const url = new URL(args[0] || "", location).href.toLowerCase();
             if (this.onSend &&
@@ -877,18 +915,20 @@ function pageScript(Config, Messages) {
                 (!this.onlyURLs || this.onlyURLs.match(url))) {
               this.onSend("fetch", args);
             }
+            return doCall(win, origFetch, args);
           },
         }
       );
 
-      const openedXHRArgs = new WeakMap();
+      this.openedXHRArgs = new WeakMap();
 
       // Save the method and URL on the XHR objects when opened (for the send hook's use)
       this.openXHRHook = new PropertyHook(
         "XMLHttpRequest.prototype.open",
         {
-          onCalled: (obj, args) => {
-            openedXHRArgs.set(this, args);
+          onCalled: (xhr, origOpen, args) => {
+            this.openedXHRArgs.set(xhr, args);
+            return doCall(xhr, origOpen, args);
           },
         }
       );
@@ -896,8 +936,8 @@ function pageScript(Config, Messages) {
       this.sendXHRHook = new PropertyHook(
         "XMLHttpRequest.prototype.send",
         {
-          onCalled: (obj, args) => {
-            const openArgs = openedXHRArgs.get(this);
+          onCalled: (xhr, origSend, args) => {
+            const openArgs = this.openedXHRArgs.get(xhr);
             const method = (openArgs[0] || "get").toLowerCase();
             const url = new URL(openArgs[1] || "", location).href.toLowerCase();
             if (this.onSend &&
@@ -905,6 +945,7 @@ function pageScript(Config, Messages) {
                 (!this.onlyURLs || this.onlyURLs.match(url))) {
               this.onSend("XHR sent", openArgs);
             }
+            return doCall(xhr, origSend, args);
           },
         }
       );
@@ -1000,7 +1041,7 @@ function pageScript(Config, Messages) {
     enable() {
       if (!this.override) {
         this.override = new PropertyHook("navigator.geolocation", {
-          onGetter: (obj, value) => {
+          onGetter: (navGeo, origGetter, args) => {
             if (this.geolocation) {
               return {
                 getCurrentPosition: success => {
@@ -1016,7 +1057,7 @@ function pageScript(Config, Messages) {
                 },
               };
             }
-            return value;
+            return doCall(navGeo, origGetter, args);
           }
         });
       }
@@ -1035,13 +1076,13 @@ function pageScript(Config, Messages) {
       super(name, oldTTDS);
 
       this.languageHook = new PropertyHook("navigator.language", {
-        onGetter: (obj, value) => {
-          return this.language || value;
+        onGetter: (navLang, origGetter, args) => {
+          return this.language || doCall(navLang, origGetter, args);
         }
       });
       this.languagesHook = new PropertyHook("navigator.languages", {
-        onGetter: (obj, value) => {
-          return this.languages || value;
+        onGetter: (navLang, origGetter, args) => {
+          return this.languages || doCall(navLang, origGetter, args);
         }
       });
     }
@@ -1101,7 +1142,7 @@ function pageScript(Config, Messages) {
         const overrides = (opts.overrides || {}).script || {};
         for (const [override, newValue] of Object.entries(overrides)) {
           this.overrides.push(new PropertyHook(override, {
-            onGetter: (obj, value) => {
+            onGetter: (obj, origGetter, args) => {
               return newValue;
             }
           }));
@@ -1151,13 +1192,13 @@ function pageScript(Config, Messages) {
         } else {
           const hookAction = getActionFor(action);
           this.hooks.push(new PropertyHook(hook, {
-            onGetter: hookAction || function(obj, value) {
-              LogTrace(hook, Messages.LogGetterAccessed, value);
-              return value;
+            onGetter: hookAction || function(obj, origGetter, args) {
+              LogTrace(hook, Messages.LogGetterAccessed, args[0]);
+              return doCall(obj, origGetter, args);
             },
-            onSetter: hookAction || function(obj, newValue) {
-              LogTrace(hook, Messages.LogSetterCalled, newValue);
-              return newValue;
+            onSetter: hookAction || function(obj, origSetter, args) {
+              LogTrace(hook, Messages.LogSetterCalled, args[0]);
+              return doCall(obj, origSetter, args);
             }
           }));
         }
@@ -1166,15 +1207,11 @@ function pageScript(Config, Messages) {
         if (action === "hide") {
           this.hooks.push(new DisableHook(hook));
         } else {
-          const onCalled = getActionFor(action) || function(obj, args, thisObj) {
-            LogTrace(hook, thisObj, Messages.LogCalledWithArgs, args);
-          };
           this.hooks.push(new PropertyHook(hook, {
-            onGetter: (obj, fn) => {
-              // If the method didn't originally exist, just return our hook
-              return fn || onCalled;
+            onCalled: getActionFor(action) || function(thisObj, fn, args) {
+              LogTrace(hook, thisObj, Messages.LogCalledWithArgs, args);
+              return doCall(thisObj, fn, args);
             },
-            onCalled,
           }));
         }
       }
