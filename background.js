@@ -6,7 +6,7 @@
 
 /* global browser, checkIfActiveOnThisTab, matchRegex, matchString,
           maybeActivateCORSBypassListener, setContentScript,
-          setRequestHeaderOverrides, setURLReplacements */
+          setRequestHeaderOverrides, setURLReplacements, WebPHook */
 
 const IsAndroid = navigator.userAgent.includes("Android");
 
@@ -83,6 +83,17 @@ function onActiveTabConfigUpdated(tabConfig) {
     }
   }
   setRequestHeaderOverrides(requestHeaderOverrides);
+
+  // Also check if we should activate the WebP hook.
+  if (typeof WebPHook !== "undefined") {
+    if ((tabConfig && tabConfig.WebP && tabConfig.WebP.enabled) ||
+        (userAgentOverrides && userAgentOverrides.overrides.polyfills &&
+         userAgentOverrides.overrides.polyfills.includes("WebP"))) {
+      WebPHook.enable();
+    } else {
+      WebPHook.disable();
+    }
+  }
 
   // Also check if we should activate the CORS bypass.
   maybeActivateCORSBypassListener(tabConfig);

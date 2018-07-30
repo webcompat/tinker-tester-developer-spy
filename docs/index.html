@@ -41,6 +41,7 @@
       <li><a href="#taskScheduling">Task Scheduling</a></li>
       <li><a href="#shadowDOM">Shadow DOM</a></li>
       <li><a href="#geolocation">Geolocation</a></li>
+      <li><a href="#webp">Enable WebP support</a></li>
       <li><a href="#disableDebugger">Disable debugger keyword</a></li>
       <li><a href="#functionBindHelper">function.bind helper</a></li>
       <li><a href="#bypassSiteCORSSettings">Bypass Site CORS Settings</a></li>
@@ -371,7 +372,7 @@ Tinker.DetectUAChecks.update({
 
   <h3 id="spoofUserAgent">Spoof User Agent</h3>
 
-  <p>Allows quick UA-spoofing from a set of browser version presets. These spoofs may attempt to spoof more than just the UserAgent string, in order to better mimic the environment of their browser and device.</p>
+  <p>Allows quick UA-spoofing from a set of browser version presets. These spoofs may attempt to spoof more than just the UserAgent string, in order to better mimic the environment of their browser and device. For instance, the Chrome spoofs enable support for decoding WebP images.</p>
 
   <table><caption>
     Selecting UA-spoofing presets to mimic Chrome on an Android tablet device.
@@ -564,6 +565,28 @@ Tinker.Geolocation.update({
   latitude: 30,
   longitude: 10,
   accuracy: 10,
+});
+    </code></pre></td>
+  </tr></table>
+
+  <h3 id="webp">Enable WebP support</h3>
+
+  <p>Some sites use the WebP image format, and may not provide fallbacks for non-supporting browsers, or may have glitches related to detecting support for WebP (especially on mobile devices). This hook allows testing for such cases, by enabling rough support for WebP in Firefox when enabled. Support is implemented by advertising support in the HTTP <code>Accept</code> request header, intercepting network requests for WebP images (including CSS background images), and then translating them into PNGs.
+
+  <p>Note that a page refresh will be required after toggling the option for changes to take effect.</p>
+
+  <p>Also note that animated WebPs are not supported (only the first frame will be decoded), and that support for encoding WebPs using the HTML <code>canvas</code> APIs is not implemented.</p>
+
+  <table><caption>
+    Enabling WebP support
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="webp.png"></td>
+    <td><pre><code>
+Tinker.WebP.update({
+  enabled: true,
 });
     </code></pre></td>
   </tr></table>

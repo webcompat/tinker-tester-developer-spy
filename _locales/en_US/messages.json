@@ -13,6 +13,12 @@
   "bgBypassingCORSHeader": {
     "message": "Bypassing $1=$2 for $3"
   },
+  "bgWebPDecoded": {
+    "message": "Decoded WebP image at $1"
+  },
+  "bgWebPDecodingError": {
+    "message": "Error decoding WebP image at $1"
+  },
   "bgExceptionOverridingURL": {
     "message": "Exception thrown while overriding network request to $1 with $2"
   },
@@ -66,6 +72,9 @@
   },
   "hookLabelDisableDebugger": {
     "message": "Disable debugger keyword"
+  },
+  "hookLabelWebP": {
+    "message": "Enable WebP support"
   },
   "hookLabelFunctionBind": {
     "message": "function.bind helper"
@@ -283,19 +292,31 @@
     "message": "Only override"
   },
 
+  "uaChromeAndroidPhone": {
+    "message": "Chrome 68 (Android Phone)"
+  },
   "uaChromeAndroidTablet": {
-    "message": "Chrome 61 (Android Tablet)"
+    "message": "Chrome 68 (Android Tablet)"
   },
   "uaChromeLinux": {
-    "message": "Chrome 61 (Linux)"
+    "message": "Chrome 68 (Linux)"
+  },
+  "uaChromeOSX": {
+    "message": "Chrome 68 (OSX)"
+  },
+  "uaChromeWindows": {
+    "message": "Chrome 68 (Windows)"
+  },
+  "uaEdge": {
+    "message": "Edge 42 (Windows)"
   },
   "uaFirefoxAndroidPhone": {
-    "message": "Firefox 57 (Android Phone)"
+    "message": "Firefox 61 (Android Phone)"
   },
   "uaFirefoxAndroidTablet": {
-    "message": "Firefox 57 (Android Tablet)"
+    "message": "Firefox 61 (Android Tablet)"
   },
   "uaSafariOSX": {
-    "message": "Safari 10.12.6 (OSX)"
+    "message": "Safari 11.1.2 (OSX)"
   }
 }

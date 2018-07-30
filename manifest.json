@@ -30,6 +30,7 @@
       "common.js",
       "UnsafeContentScriptEvalsBackground.js",
       "background_utils.js",
+      "webp/background.js",
       "background.js"
     ]
   },

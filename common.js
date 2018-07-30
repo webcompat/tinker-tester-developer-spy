@@ -105,42 +105,171 @@ window.ScriptOverrideHooks = {
   },
   "UserAgentOverrides": {
     overrides: {
-      "uaChromeAndroidTablet": {
+      "uaChromeAndroidPhone": {
         "headers": {
           "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-          "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Mobile Safari/537.36",
+          "User-Agent": "Mozilla/5.0 (Linux; Android 8.0.0; SM-G935W8 Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
         },
         "script": {
-          "navigator.appVersion": "5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Mobile Safari/537.36",
-          "navigator.userAgent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Mobile Safari/537.36",
-          "navigator.oscpu": null,
-          "navigator.platform": "Linux armv7l",
+          "navigator.appVersion": "5.0 (Linux; Android 8.0.0; SM-G935W8 Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.userAgent": "Mozilla/5.0 (Linux; Android 8.0.0; SM-G935W8 Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.buildID": undefined,
+          "navigator.doNotTrack": null,
+          "navigator.oscpu": undefined,
+          "navigator.platform": "Linux armv8l",
           "navigator.mimeTypes": [],
           "navigator.plugins": [],
           "navigator.productSub": "20030107",
           "navigator.vendor": "Google Inc.",
         },
+        "polyfills": [
+          "WebP",
+        ]
+      },
+      "uaChromeAndroidTablet": {
+        "headers": {
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+          "User-Agent": "Mozilla/5.0 (Linux; Android 8.0.0; Nexus 10 Build/JWR66Y) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+        },
+        "script": {
+          "navigator.appVersion": "5.0 (Linux; Android 8.0.0; Nexus 10 Build/JWR66Y) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.userAgent": "Mozilla/5.0 (Linux; Android 8.0.0; Nexus 10 Build/JWR66Y) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.buildID": undefined,
+          "navigator.doNotTrack": null,
+          "navigator.oscpu": undefined,
+          "navigator.platform": "Linux armv8l",
+          "navigator.mimeTypes": [],
+          "navigator.plugins": [],
+          "navigator.productSub": "20030107",
+          "navigator.vendor": "Google Inc.",
+        },
+        "polyfills": [
+          "WebP",
+        ]
       },
       "uaChromeLinux": {
+        "headers": {
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+        },
         "script": {
-          "navigator.appVersion": "5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Safari/537.36",
-          "navigator.userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Safari/537.36",
+          "navigator.appVersion": "5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.buildID": undefined,
+          "navigator.doNotTrack": null,
+          "navigator.oscpu": undefined,
+          "navigator.platform": "Linux x86_64",
+          "navigator.productSub": "20030107",
           "navigator.vendor": "Google Inc.",
+        },
+        "polyfills": [
+          "WebP",
+        ]
+      },
+      "uaChromeOSX": {
+        "headers": {
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+        },
+        "script": {
+          "navigator.appVersion": "5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.buildID": undefined,
+          "navigator.doNotTrack": null,
+          "navigator.oscpu": undefined,
+          "navigator.platform": "MacIntel",
+          "navigator.productSub": "20030107",
+          "navigator.vendor": "Google Inc.",
+        },
+        "polyfills": [
+          "WebP",
+        ]
+      },
+      "uaChromeWindows": {
+        "headers": {
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+        },
+        "script": {
+          "navigator.appVersion": "5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.75 Safari/537.36",
+          "navigator.buildID": undefined,
+          "navigator.doNotTrack": null,
+          "navigator.oscpu": undefined,
+          "navigator.platform": "Win32",
+          "navigator.productSub": "20030107",
+          "navigator.vendor": "Google Inc.",
+        },
+        "polyfills": [
+          "WebP",
+        ]
+      },
+      "uaEdge": {
+        "headers": {
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134",
+        },
+        "script": {
+          "navigator.appVersion": "5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134",
+          "navigator.userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134",
+          "navigator.msManipulationViewsEnabled": false,
+          "navigator.buildID": undefined,
+          "navigator.credentials": undefined,
+          "navigator.doNotTrack": null,
+          "navigator.storage": undefined,
+          "navigator.oscpu": undefined,
+          "navigator.platform": "Win32",
+          "navigator.productSub": "20030107",
+          "navigator.vendor": "",
         },
       },
       "uaFirefoxAndroidTablet": {
+        "headers": {
+          "User-Agent": "Mozilla/5.0 (Android 8.0.0; Tablet; rv:61.0) Gecko/61.0 Firefox/61.0",
+        },
         "script": {
-          "navigator.userAgent": "Mozilla/5.0 (Android 7.0; Tablet; rv:57.0) Gecko/57.0 Firefox/57.0",
+          "navigator.appVersion": "5.0 (Android 8.0.0)",
+          "navigator.userAgent": "Mozilla/5.0 (Android 8.0.0; Tablet; rv:61.0) Gecko/61.0 Firefox/61.0",
+          "navigator.buildID": "20180621125625",
+          "navigator.oscpu": "Linux armv8l",
+          "navigator.mimeTypes": [],
+          "navigator.plugins": [],
+          "navigator.platform": "Linux armv8l",
         },
       },
       "uaFirefoxAndroidPhone": {
+        "headers": {
+          "User-Agent": "Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0",
+        },
         "script": {
-          "navigator.userAgent": "Mozilla/5.0 (Android 7.0; Mobile; rv:57.0) Gecko/57.0 Firefox/57.0",
+          "navigator.appVersion": "5.0 (Android 8.0.0)",
+          "navigator.userAgent": "Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0",
+          "navigator.buildID": "20180621125625",
+          "navigator.oscpu": "Linux armv8l",
+          "navigator.mimeTypes": [],
+          "navigator.plugins": [],
+          "navigator.platform": "Linux armv8l",
         },
       },
       "uaSafariOSX": {
+        "headers": {
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.2 Safari/605.1.15",
+        },
         "script": {
-          "navigator.userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8",
+          "navigator.appVersion": "5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.2 Safari/605.1.15",
+          "navigator.userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.2 Safari/605.1.15",
+          "navigator.buildID": undefined,
+          "navigator.credentials": undefined,
+          "navigator.doNotTrack": null,
+          "navigator.hardwareConcurrency": undefined,
+          "navigator.maxTouchPoints": undefined,
+          "navigator.serviceWorker": undefined,
+          "navigator.storage": undefined,
+          "navigator.oscpu": undefined,
+          "navigator.platform": "MacIntel",
+          "navigator.productSub": "20030107",
+          "navigator.vendor": "Apple Computer, Inc.",
         },
       },
     },
@@ -232,6 +361,9 @@ window.ScriptOverrideHooks = {
       heading: browser.i18n.getMessage("optionGeolocationHeading"),
       speed: browser.i18n.getMessage("optionGeolocationSpeed"),
     },
+  },
+  "WebP": {
+    type: "checkbox",
   },
   "DisableDebugger": {
     type: "checkbox",
