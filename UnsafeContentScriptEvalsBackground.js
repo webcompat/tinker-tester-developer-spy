@@ -45,7 +45,7 @@ const UnsafeContentScriptEvals = (function() {
       const name = header.name.toLowerCase();
       if (name === "content-security-policy") {
         let effectiveDirective;
-        let originalValue = header.value;
+        const originalValue = header.value;
         if (header.value.includes("script-src ")) {
           if (!header.value.match(ScriptSrcAllowsEval)) {
             effectiveDirective = "script-src";

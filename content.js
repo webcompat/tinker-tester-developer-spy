@@ -44,7 +44,7 @@ function pageScript(Config, Messages) {
         // eslint-disable-next-line no-debugger
         debugger;
         return doCall(obj, origHandler, args);
-      }
+      };
     } else if (code === "log stack trace") {
       return undefined;
     } else if (code === "ignore") {
