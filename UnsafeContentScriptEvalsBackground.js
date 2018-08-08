@@ -14,8 +14,8 @@ const SecureAllowEvalsToken = crypto.getRandomValues(new Uint32Array(4)).join(""
 const UnsafeContentScriptEvals = (function() {
   "use strict";
 
-  const ScriptSrcCheckRE = new RegExp("(script-src)[^;]*(unsafe-eval)?", "i");
-  const DefaultSrcCheckRE = new RegExp("(default-src)[^;]*(unsafe-eval)?", "i");
+  const ScriptSrcAllowsEval = new RegExp("script-src[^;]*'unsafe-eval'", "i");
+  const DefaultSrcAllowsEval = new RegExp("default-src[^;]*'unsafe-eval'", "i");
   const DefaultSrcGetRE = new RegExp("default-src([^;]*)", "i");
 
   const ActiveConfigContentScripts = {};
@@ -43,33 +43,28 @@ const UnsafeContentScriptEvals = (function() {
     let CSP;
     for (const header of details.responseHeaders) {
       const name = header.name.toLowerCase();
-      if (name === "content-security-policy" ||
-          name === "content-security-policy-report-only") {
-        let match = header.value.match(ScriptSrcCheckRE);
-        let madeChange = false;
-        if (match) {
-          if (!match[2]) {
-            madeChange = true;
+      if (name === "content-security-policy") {
+        let effectiveDirective;
+        let originalValue = header.value;
+        if (header.value.includes("script-src ")) {
+          if (!header.value.match(ScriptSrcAllowsEval)) {
+            effectiveDirective = "script-src";
             header.value = header.value.
               replace("script-src", "script-src 'unsafe-eval'");
           }
-        } else {
-          match = header.value.match(DefaultSrcCheckRE);
-          if (match) {
-            if (!match[2]) {
-              madeChange = true;
-              const defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
-              header.value = header.value.replace("default-src",
-                `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
-            }
-          }
+        } else if (header.value.includes("default-src") &&
+                   !header.value.match(DefaultSrcAllowsEval)) {
+          effectiveDirective = "default-src";
+          const defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
+          header.value = header.value.replace("default-src",
+            `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
         }
-        if (madeChange) {
+        if (effectiveDirective) {
           CSP = {
-            violatedDirective: match[1],
-            effectiveDirective: match[1],
-            disposition: name.includes("report") ? "report" : "enforce",
-            originalPolicy: header.value,
+            violatedDirective: effectiveDirective,
+            effectiveDirective,
+            disposition: "enforce",
+            originalPolicy: originalValue,
             documentURI: url,
           };
         }
