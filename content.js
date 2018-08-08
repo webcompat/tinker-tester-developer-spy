@@ -40,8 +40,11 @@ function pageScript(Config, Messages) {
 
   function getActionFor(code) {
     if (code === "start debugger") {
-      // eslint-disable-next-line no-debugger
-      return () => { debugger; };
+      return (obj, origHandler, args) => {
+        // eslint-disable-next-line no-debugger
+        debugger;
+        return doCall(obj, origHandler, args);
+      }
     } else if (code === "log stack trace") {
       return undefined;
     } else if (code === "ignore") {
@@ -50,9 +53,12 @@ function pageScript(Config, Messages) {
         return null;
       };
     } else if (code === "nothing") {
-      return function() {};
+      return (obj, origHandler, args) => {
+        return doCall(obj, origHandler, args);
+      };
     }
-    return new Function(code + "//" + Config.AllowEvalsToken);
+    return new Function("obj", "origHandler", "args",
+                        code + "//" + Config.AllowEvalsToken);
   }
 
   function doCall(thisObj, fn, args) {
