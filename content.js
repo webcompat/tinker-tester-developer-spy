@@ -1696,7 +1696,9 @@ function pageScript(Config, Messages) {
       channel.port1.postMessage(newConfig);
     }
   } else {
-    console.info(Messages.apiAnnounceKey.replace("KEY", UUID));
+    if (window.top === window) {
+      console.info(Messages.apiAnnounceKey.replace("KEY", UUID));
+    }
     Tinker.replaceConfig(Config);
   }
 
