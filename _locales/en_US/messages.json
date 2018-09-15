@@ -82,6 +82,9 @@
   "hookLabelGeolocation": {
     "message": "Geolocation"
   },
+  "hookLabelHistory": {
+    "message": "History"
+  },
   "hookLabelInputsAndLinks": {
     "message": "Inputs and Links"
   },

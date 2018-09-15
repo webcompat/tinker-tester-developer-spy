@@ -36,6 +36,7 @@
       <li><a href="#spoofUserAgent">Spoof User Agent</a></li>
       <li><a href="#scrolling">Scrolling</a></li>
       <li><a href="#documentWrite">document.write</a></li>
+      <li><a href="#history">History</a></li>
       <li><a href="#inputsAndLinks">Inputs and Links</a></li>
       <li><a href="#audioVideo">Audio/Video</a></li>
       <li><a href="#taskScheduling">Task Scheduling</a></li>
@@ -442,6 +443,31 @@ Tinker.DocumentWrite.update({
   methods: {
     "document.write": "ignore",
     "document.writeln": "ignore",
+  },
+});
+    </code></pre></td>
+  </tr></table>
+
+
+  <h3 id="history">History</h3>
+
+  <p>Allows detecting when features of the HTML history API are used by scripts.</p>
+
+  <table><caption>
+    Detecting when a site is reading or altering the tab history.
+  </caption><tr>
+    <th>User-interface</th>
+    <th>Console API</th>
+  </tr><tr>
+    <td><img src="history.png"></td>
+    <td><pre><code>
+Tinker.History.update({
+  methods: {
+    "history.pushState": "log stack trace",
+    "history.replaceState": "log stack trace",
+  },
+  properties: {
+    "history.state": "log stack trace",
   },
 });
     </code></pre></td>

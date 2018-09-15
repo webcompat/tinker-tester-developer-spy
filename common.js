@@ -311,6 +311,20 @@ window.ScriptOverrideHooks = {
       "document.writeln",
     ]
   },
+  "History": {
+    properties: [
+      "history.length",
+      "history.state",
+      "history.scrollRestoration",
+    ],
+    methods: [
+      "history.back",
+      "history.forward",
+      "history.go",
+      "history.pushState",
+      "history.replaceState",
+    ]
+  },
   "InputsAndLinks": {
     properties: [
       "HTMLInputElement.prototype.checked",

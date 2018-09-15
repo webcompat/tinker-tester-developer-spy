@@ -1672,6 +1672,7 @@ function pageScript(Config, Messages) {
   addHook("EventFeatures", SimpleHookList);
   addHook("Scrolling", SimpleHookList);
   addHook("DocumentWrite", SimpleHookList);
+  addHook("History", SimpleHookList);
   addHook("InputsAndLinks", SimpleHookList);
   addHook("MediaElements", SimpleHookList);
   addHook("Scheduling", SimpleHookList);
