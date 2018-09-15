@@ -99,15 +99,20 @@ const maybeActivateCORSBypassListener = (function() {
   };
 
   const CORSBypassListener = e => {
+    const responseHeaders = [];
     for (const header of e.responseHeaders) {
       const name = header.name.toLowerCase();
+      if (name === "x-frame-options") {
+        continue;
+      }
       const replacement = CORS_BYPASS_OVERRIDES[name];
       if (replacement) {
         console.info(browser.i18n.getMessage("bgBypassingCORSHeader", [name, header.value, e.url]));
         header.value = replacement;
       }
+      responseHeaders.push(header);
     }
-    return {responseHeaders: e.responseHeaders};
+    return {responseHeaders};
   };
 
   return function maybeActivateCORSBypassListener(tabConfig) {
