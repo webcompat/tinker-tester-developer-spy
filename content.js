@@ -591,33 +591,33 @@ function pageScript(Config, Messages) {
           this.selector = opts.selector;
         }
         this.onAdded = (opts.onAdded === "ignore" &&
-          ((type, elem, fn) => {
+          ((elem, oldAEL, [type, fn, opts]) => {
             if (this._matches(type, elem)) {
               LogTrace(type, Messages.LogIgnoringListenerAddedOn, elem, fn);
               return false;
             }
             return undefined;
-          })) || getActionFor(opts.onAdded) || function(type, elem, fn) {
-          LogTrace(type, Messages.LogListenerAddedOn, elem, fn);
+          })) || getActionFor(opts.onAdded) || function(elem, oldAEL, [type, fn, opts]) {
+          LogTrace(type, Messages.LogListenerAddedOn, elem, fn, opts);
         };
         this.onRemoved = (opts.onRemoved === "ignore" &&
-          ((type, elem, fn) => {
+          ((elem, oldREL, [type, fn, opts]) => {
             if (this._matches(type, elem)) {
-              LogTrace(type, Messages.LogIgnoringListenerRemovedFrom, elem, fn);
+              LogTrace(type, Messages.LogIgnoringListenerRemovedFrom, elem, fn, opts);
               return false;
             }
             return undefined;
-          })) || getActionFor(opts.onRemoved) || function(type, elem, fn) {
+          })) || getActionFor(opts.onRemoved) || function(elem, oldREL, [type, fn, opts]) {
           LogTrace(type, Messages.LogListenerRemovedFrom, elem, fn);
         };
         this.onEvent = (opts.onEvent === "ignore" &&
-          ((event, handler) => {
+          ((thisObj, handler, [event]) => {
             if (this._matches(event.type, event.target)) {
               Log(event.type, Messages.LogIgnoringEvent, event.target, event, handler);
               return false;
             }
             return undefined;
-          })) || getActionFor(opts.onEvent) || function(event, handler) {
+          })) || getActionFor(opts.onEvent) || function(thisObj, handler, [event]) {
             Log(event.type, Messages.LogEventFiredOn, event.target, event, handler);
           };
       }
@@ -638,23 +638,23 @@ function pageScript(Config, Messages) {
                   (elem.matches && elem.matches(this.selector)));
       }
 
-      _onAdded(elem, type, fn) {
+      _onAdded(elem, type, fn, opts) {
         if (this.enabled && this._matches(type, elem)) {
-          return this.onAdded(type, elem, fn);
+          return this.onAdded(elem, this.oldAEL, [type, fn, opts]);
         }
         return undefined;
       }
 
-      _onRemoved(elem, type, fn) {
+      _onRemoved(elem, type, fn, opts) {
         if (this.enabled && this._matches(type, elem)) {
-          return this.onRemoved(type, elem, fn);
+          return this.onRemoved(elem, this.oldREL, [type, fn, opts]);
         }
         return undefined;
       }
 
-      _onEvent(event, handler) {
+      _onEvent(thisObj, handler, event) {
         if (this.enabled && this._matches(event.type, event.target)) {
-          return this.onEvent(event, handler);
+          return this.onEvent(thisObj, handler, [event]);
         }
         return undefined;
       }
@@ -761,7 +761,7 @@ function pageScript(Config, Messages) {
       onEvent(thisObj, event, originalHandler) {
         let stopEvent = false;
         for (const rule of this.rules) {
-          if (rule._onEvent(event, originalHandler) === false) {
+          if (rule._onEvent(thisObj, originalHandler, event) === false) {
             stopEvent = true;
           }
         }
