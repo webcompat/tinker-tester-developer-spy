@@ -47,7 +47,9 @@ const UnsafeContentScriptEvals = (function() {
         let effectiveDirective;
         const originalValue = header.value;
         if (header.value.includes("script-src ")) {
-          if (!header.value.match(ScriptSrcAllowsEval)) {
+          if (header.value.includes("'strict-dynamic'")) {
+            header.value = header.value.replace(/'unsafe-eval'/g, "");
+          } else if (!header.value.match(ScriptSrcAllowsEval)) {
             effectiveDirective = "script-src";
             header.value = header.value.
               replace("script-src", "script-src 'unsafe-eval'");
@@ -55,9 +57,13 @@ const UnsafeContentScriptEvals = (function() {
         } else if (header.value.includes("default-src") &&
                    !header.value.match(DefaultSrcAllowsEval)) {
           effectiveDirective = "default-src";
-          const defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
-          header.value = header.value.replace("default-src",
-            `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
+          if (header.value.includes("'strict-dynamic'")) {
+            header.value = header.value.replace(/'unsafe-eval'/g, "");
+          } else {
+            const defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
+            header.value = header.value.replace("default-src",
+              `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
+          }
         }
         if (effectiveDirective) {
           CSP = {
