@@ -1,11 +1,3 @@
-/* This file and the related wasm module were compiled using the steps at, and
- * inherit the license of: https://github.com/webmproject/libwebp
- *
- * It is released under the same license as the WebM project.
- * See http://www.webmproject.org/license/software/ or the
- * "COPYING" file for details. An additional intellectual
- * property rights grant can be found in the file PATENTS. */
-
 var Module = typeof Module !== "undefined" ? Module : {};
 var moduleOverrides = {};
 var key;
@@ -70,9 +62,7 @@ if (ENVIRONMENT_IS_NODE) {
             throw ex
         }
     }));
-    process["on"]("unhandledRejection", (function(reason, p) {
-        process["exit"](1)
-    }));
+    process["on"]("unhandledRejection", abort);
     Module["quit"] = (function(status) {
         process["exit"](status)
     });
@@ -105,13 +95,17 @@ if (ENVIRONMENT_IS_NODE) {
         })
     }
 } else if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
-    if (ENVIRONMENT_IS_WEB) {
-        var currentScript = Module["sourcePath"] !== undefined ? {src: Module["sourcePath"]} : document.currentScript;
-        if (currentScript.src.indexOf("blob:") !== 0) {
-            scriptDirectory = currentScript.src.split("/").slice(0, -1).join("/") + "/"
-        }
+    if (Module["sourcePath"] !== undefined) {
+        scriptDirectory = Module["sourcePath"];
     } else if (ENVIRONMENT_IS_WORKER) {
-        scriptDirectory = self.location.href.split("/").slice(0, -1).join("/") + "/"
+        scriptDirectory = self.location.href
+    } else if (document.currentScript) {
+        scriptDirectory = document.currentScript.src
+    }
+    if (scriptDirectory.indexOf("blob:") !== 0) {
+        scriptDirectory = scriptDirectory.substr(0, scriptDirectory.lastIndexOf("/") + 1)
+    } else {
+        scriptDirectory = ""
     }
     Module["read"] = function shell_read(url) {
         var xhr = new XMLHttpRequest;
@@ -239,7 +233,7 @@ function dynCall(sig, ptr, args) {
     }
 }
 var GLOBAL_BASE = 1024;
-var ABORT = 0;
+var ABORT = false;
 var EXITSTATUS = 0;
 
 function assert(condition, text) {
@@ -438,7 +432,10 @@ function stringToUTF8Array(str, outU8Array, outIdx, maxBytesToWrite) {
     var endIdx = outIdx + maxBytesToWrite - 1;
     for (var i = 0; i < str.length; ++i) {
         var u = str.charCodeAt(i);
-        if (u >= 55296 && u <= 57343) u = 65536 + ((u & 1023) << 10) | str.charCodeAt(++i) & 1023;
+        if (u >= 55296 && u <= 57343) {
+            var u1 = str.charCodeAt(++i);
+            u = 65536 + ((u & 1023) << 10) | u1 & 1023
+        }
         if (u <= 127) {
             if (outIdx >= endIdx) break;
             outU8Array[outIdx++] = u
@@ -513,7 +510,7 @@ function demangleAll(text) {
     var regex = /__Z[\w\d_]+/g;
     return text.replace(regex, (function(x) {
         var y = demangle(x);
-        return x === y ? x : x + " [" + y + "]"
+        return x === y ? x : y + " [" + x + "]"
     }))
 }
 
@@ -750,10 +747,6 @@ function integrateWasmJS() {
         updateGlobalBufferViews()
     }
 
-    function fixImports(imports) {
-        return imports
-    }
-
     function getBinary() {
         try {
             if (Module["wasmBinary"]) {
@@ -828,7 +821,7 @@ function integrateWasmJS() {
         function instantiateArrayBuffer(receiver) {
             getBinaryPromise().then((function(binary) {
                 return WebAssembly.instantiate(binary, info)
-            })).then(receiver).catch((function(reason) {
+            })).then(receiver, (function(reason) {
                 err("failed to asynchronously prepare wasm: " + reason);
                 abort(reason)
             }))
@@ -836,7 +829,7 @@ function integrateWasmJS() {
         if (!Module["wasmBinary"] && typeof WebAssembly.instantiateStreaming === "function" && !isDataURI(wasmBinaryFile) && typeof fetch === "function") {
             WebAssembly.instantiateStreaming(fetch(wasmBinaryFile, {
                 credentials: "same-origin"
-            }), info).then(receiveInstantiatedSource).catch((function(reason) {
+            }), info).then(receiveInstantiatedSource, (function(reason) {
                 err("wasm streaming compile failed: " + reason);
                 err("falling back to ArrayBuffer instantiation");
                 instantiateArrayBuffer(receiveInstantiatedSource)
@@ -875,7 +868,6 @@ function integrateWasmJS() {
     });
     var finalMethod = "";
     Module["asm"] = (function(global, env, providedBuffer) {
-        env = fixImports(env);
         if (!env["table"]) {
             var TABLE_SIZE = Module["wasmTableSize"];
             if (TABLE_SIZE === undefined) TABLE_SIZE = 1024;
@@ -1724,7 +1716,7 @@ var Browser = {
                 h = Math.round(w / Module["forcedAspectRatio"])
             }
         }
-        if (typeof screen != "undefined" && (document["fullscreenElement"] || document["mozFullScreenElement"] || document["msFullscreenElement"] || document["webkitFullscreenElement"] || document["webkitCurrentFullScreenElement"]) === canvas.parentNode) {
+        if ((document["fullscreenElement"] || document["mozFullScreenElement"] || document["msFullscreenElement"] || document["webkitFullscreenElement"] || document["webkitCurrentFullScreenElement"]) === canvas.parentNode && typeof screen != "undefined") {
             var factor = Math.min(screen.width / w, screen.height / h);
             w = Math.round(w * factor);
             h = Math.round(h * factor)
@@ -2891,7 +2883,7 @@ function _SDL_Init(initFlags) {
         window.addEventListener("blur", SDL.receiveEvent);
         document.addEventListener("visibilitychange", SDL.receiveEvent)
     }
-    typeof window !== "undefined" && window.addEventListener("unload", SDL.receiveEvent);
+    window.addEventListener("unload", SDL.receiveEvent);
     SDL.keyboardState = _malloc(65536);
     _memset(SDL.keyboardState, 0, 65536);
     SDL.DOMEventToSDLEvent["keydown"] = 768;
@@ -3005,7 +2997,6 @@ var GL = {
             }
             if (!ctx) throw ":("
         } catch (e) {
-            out("Could not create canvas: " + [errorInfo, e, JSON.stringify(webGLContextAttributes)]);
             return 0
         }
         if (!ctx) return 0;
@@ -3048,7 +3039,6 @@ var GL = {
         if (context.initExtensionsDone) return;
         context.initExtensionsDone = true;
         var GLctx = context.GLctx;
-        context.maxVertexAttribs = GLctx.getParameter(GLctx.MAX_VERTEX_ATTRIBS);
         if (context.version < 2) {
             var instancedArraysExt = GLctx.getExtension("ANGLE_instanced_arrays");
             if (instancedArraysExt) {
@@ -3085,7 +3075,7 @@ var GL = {
             }
         }
         GLctx.disjointTimerQueryExt = GLctx.getExtension("EXT_disjoint_timer_query");
-        var automaticallyEnabledExtensions = ["OES_texture_float", "OES_texture_half_float", "OES_standard_derivatives", "OES_vertex_array_object", "WEBGL_compressed_texture_s3tc", "WEBGL_depth_texture", "OES_element_index_uint", "EXT_texture_filter_anisotropic", "ANGLE_instanced_arrays", "OES_texture_float_linear", "OES_texture_half_float_linear", "WEBGL_compressed_texture_atc", "WEBKIT_WEBGL_compressed_texture_pvrtc", "WEBGL_compressed_texture_pvrtc", "EXT_color_buffer_half_float", "WEBGL_color_buffer_float", "EXT_frag_depth", "EXT_sRGB", "WEBGL_draw_buffers", "WEBGL_shared_resources", "EXT_shader_texture_lod", "EXT_color_buffer_float"];
+        var automaticallyEnabledExtensions = ["OES_texture_float", "OES_texture_half_float", "OES_standard_derivatives", "OES_vertex_array_object", "WEBGL_compressed_texture_s3tc", "WEBGL_depth_texture", "OES_element_index_uint", "EXT_texture_filter_anisotropic", "EXT_frag_depth", "WEBGL_draw_buffers", "ANGLE_instanced_arrays", "OES_texture_float_linear", "OES_texture_half_float_linear", "EXT_blend_minmax", "EXT_shader_texture_lod", "WEBGL_compressed_texture_pvrtc", "EXT_color_buffer_half_float", "WEBGL_color_buffer_float", "EXT_sRGB", "WEBGL_compressed_texture_etc1", "EXT_disjoint_timer_query", "WEBGL_compressed_texture_etc", "WEBGL_compressed_texture_astc", "EXT_color_buffer_float", "WEBGL_compressed_texture_s3tc_srgb", "EXT_disjoint_timer_query_webgl2"];
         var exts = GLctx.getSupportedExtensions();
         if (exts && exts.length > 0) {
             GLctx.getSupportedExtensions().forEach((function(ext) {
@@ -3151,11 +3141,9 @@ function _SDL_SetVideoMode(width, height, depth, flags) {
             }
         }))
     }
-    if (width !== canvas.width || height !== canvas.height) {
-        SDL.settingVideoMode = true;
-        Browser.setCanvasSize(width, height);
-        SDL.settingVideoMode = false
-    }
+    SDL.settingVideoMode = true;
+    Browser.setCanvasSize(width, height);
+    SDL.settingVideoMode = false;
     if (SDL.screen) {
         SDL.freeSurface(SDL.screen);
         assert(!SDL.screen)
@@ -3254,6 +3242,19 @@ function _SDL_UpperBlit(src, srcrect, dst, dstrect) {
     return SDL.blitSurface(src, srcrect, dst, dstrect, false)
 }
 var SYSCALLS = {
+    buffers: [null, [],
+        []
+    ],
+    printChar: (function(stream, curr) {
+        var buffer = SYSCALLS.buffers[stream];
+        assert(buffer);
+        if (curr === 0 || curr === 10) {
+            (stream === 1 ? out : err)(UTF8ArrayToString(buffer, 0));
+            buffer.length = 0
+        } else {
+            buffer.push(curr)
+        }
+    }),
     varargs: 0,
     get: (function(varargs) {
         SYSCALLS.varargs += 4;
@@ -3298,11 +3299,9 @@ function ___syscall140(which, varargs) {
 function flush_NO_FILESYSTEM() {
     var fflush = Module["_fflush"];
     if (fflush) fflush(0);
-    var printChar = ___syscall146.printChar;
-    if (!printChar) return;
-    var buffers = ___syscall146.buffers;
-    if (buffers[1].length) printChar(1, 10);
-    if (buffers[2].length) printChar(2, 10)
+    var buffers = SYSCALLS.buffers;
+    if (buffers[1].length) SYSCALLS.printChar(1, 10);
+    if (buffers[2].length) SYSCALLS.printChar(2, 10)
 }
 
 function ___syscall146(which, varargs) {
@@ -3312,26 +3311,11 @@ function ___syscall146(which, varargs) {
             iov = SYSCALLS.get(),
             iovcnt = SYSCALLS.get();
         var ret = 0;
-        if (!___syscall146.buffers) {
-            ___syscall146.buffers = [null, [],
-                []
-            ];
-            ___syscall146.printChar = (function(stream, curr) {
-                var buffer = ___syscall146.buffers[stream];
-                assert(buffer);
-                if (curr === 0 || curr === 10) {
-                    (stream === 1 ? out : err)(UTF8ArrayToString(buffer, 0));
-                    buffer.length = 0
-                } else {
-                    buffer.push(curr)
-                }
-            })
-        }
         for (var i = 0; i < iovcnt; i++) {
             var ptr = HEAP32[iov + i * 8 >> 2];
             var len = HEAP32[iov + (i * 8 + 4) >> 2];
             for (var j = 0; j < len; j++) {
-                ___syscall146.printChar(stream, HEAPU8[ptr + j])
+                SYSCALLS.printChar(stream, HEAPU8[ptr + j])
             }
             ret += len
         }
@@ -3595,7 +3579,6 @@ Module.asmLibraryArg = {
     "flush_NO_FILESYSTEM": flush_NO_FILESYSTEM,
     "DYNAMICTOP_PTR": DYNAMICTOP_PTR,
     "tempDoublePtr": tempDoublePtr,
-    "ABORT": ABORT,
     "STACKTOP": STACKTOP,
     "STACK_MAX": STACK_MAX
 };

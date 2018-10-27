@@ -1,0 +1,37 @@
+Building the WebP WASM module (I did this on Linux, so these are the instructions I used):
+
+1. Unzip and enable emsdk-master.zip (using the instructions here: https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html)
+
+    wget https://raw.githubusercontent.com/webcompat/tinker-tester-developer-spy/master/build/emsdk-master.zip
+    7z x emsdk-master.zip
+    cd emsdk-master
+    ./emsdk install latest
+    ./emsdk activate latest
+    source ./emsdk_env.sh
+
+2. Unzip and build the wasm module (using the instructions here: https://github.com/webmproject/libwebp/blob/master/README.webp_js)
+
+    wget https://raw.githubusercontent.com/webcompat/tinker-tester-developer-spy/master/build/libwebp-master.zip
+    7z x libwebp-master.zip
+    cd libwebp-master/webp_js
+    cmake -DWEBP_BUILD_WEBP_JS=ON \
+          -DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=1 \
+          -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
+          ../
+    make
+
+3. The .wasm module is now in:  libwebp-master/webp_js/webp_wasm.wasm
+   And the JS driver is now in: libwebp-master/webp_js/webp_wasm.js
+   I copied these files into the addon's webp/ subdirectory.
+
+4. I then ran the nodejs js-beautify command on webp_wasm.js
+   (see https://www.npmjs.com/package/js-beautify)
+
+5. Finally, I altered the following snippet of code in the JS driver to allow my extension to load the wasm file:
+    if (Module["sourcePath"] !== undefined) {   // I added this line
+        scriptDirectory = Module["sourcePath"]; // I added this line
+    } else if (ENVIRONMENT_IS_WORKER) {
+        scriptDirectory = self.location.href
+    } else if (document.currentScript) {
+        scriptDirectory = document.currentScript.src
+    }

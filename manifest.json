@@ -4,7 +4,7 @@
   "default_locale": "en_US",
   "description": "__MSG_addonDescription__",
   "author": "Thomas Wisniewski <twisniewski@mozilla.org>",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "homepage_url": "https://github.com/webcompat/tinker-tester-developer-spy",
   "applications": {
     "gecko": {
@@ -40,5 +40,9 @@
     "default_title": "__MSG_addonName__",
     "default_popup": "popup/popup.html"
   },
-  "devtools_page": "devtools/devtools.html"
+  "devtools_page": "devtools/devtools.html",
+  "web_accessible_resources": [
+    "webp/webp_wasm.js",
+    "webp/webp_wasm.wasm"
+  ]
 }
