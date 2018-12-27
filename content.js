@@ -767,7 +767,7 @@ function pageScript(Config, Messages) {
         }
         if (!stopEvent) {
           if (originalHandler.handleEvent) {
-            return originalHandler.handleEvent.call(thisObj, event);
+            return originalHandler.handleEvent(event);
           }
           return originalHandler.call(thisObj, event);
         }
