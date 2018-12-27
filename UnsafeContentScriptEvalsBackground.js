@@ -41,15 +41,16 @@ const UnsafeContentScriptEvals = (function() {
     const {url} = details;
 
     let CSP;
+    let reportOnlyCSP;
+    let responseHeaders = [];
     for (const header of details.responseHeaders) {
       const name = header.name.toLowerCase();
-      if (name === "content-security-policy") {
+      const reportOnly = name === "content-security-policy-report-only";
+      if (reportOnly || name === "content-security-policy") {
         let effectiveDirective;
         const originalValue = header.value;
         if (header.value.includes("script-src ")) {
-          if (header.value.includes("'strict-dynamic'")) {
-            header.value = header.value.replace(/'unsafe-eval'/g, "");
-          } else if (!header.value.match(ScriptSrcAllowsEval)) {
+          if (!header.value.match(ScriptSrcAllowsEval)) {
             effectiveDirective = "script-src";
             header.value = header.value.
               replace("script-src", "script-src 'unsafe-eval'");
@@ -57,27 +58,29 @@ const UnsafeContentScriptEvals = (function() {
         } else if (header.value.includes("default-src") &&
                    !header.value.match(DefaultSrcAllowsEval)) {
           effectiveDirective = "default-src";
-          if (header.value.includes("'strict-dynamic'")) {
-            header.value = header.value.replace(/'unsafe-eval'/g, "");
-          } else {
-            const defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
-            header.value = header.value.replace("default-src",
-              `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
-          }
+          const defaultSrcs = header.value.match(DefaultSrcGetRE)[1];
+          header.value = header.value.replace("default-src",
+            `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
         }
         if (effectiveDirective) {
-          CSP = {
+          let csp = {
             violatedDirective: effectiveDirective,
             effectiveDirective,
-            disposition: "enforce",
+            disposition: reportOnly ? "report" : "enforce",
             originalPolicy: originalValue,
             documentURI: url,
           };
+          if (reportOnly) {
+            reportOnlyCSP = csp;
+          } else {
+            CSP = csp;
+          }
         }
       }
+      responseHeaders.push(header);
     }
 
-    if (CSP) {
+    if (CSP || reportOnlyCSP) {
       // Ideally, we would just do a browser.tabs.executeScript here for just
       // the frame running at document_start, but that doesn't work (it runs
       // far too late). However, using contentScripts.register does run early
@@ -87,7 +90,9 @@ const UnsafeContentScriptEvals = (function() {
       await unregisterConfigContentScript(url);
       const code = `BlockUnsafeEvals(${JSON.stringify(url)},
                                      ${JSON.stringify(CSP)},
-                                     ${JSON.stringify(SecureAllowEvalsToken)})`;
+                                     ${JSON.stringify(reportOnlyCSP)},
+                                     ${JSON.stringify(SecureAllowEvalsToken)},
+                                     ${!window.UnsafeContentScriptEvalsBlockReports})`;
       ActiveConfigContentScripts[url] = await browser.contentScripts.register({
         allFrames: true,
         matches: [url],
@@ -96,7 +101,7 @@ const UnsafeContentScriptEvals = (function() {
       });
     }
 
-    return {responseHeaders: details.responseHeaders};
+    return {responseHeaders};
   }
 
   let Filters;

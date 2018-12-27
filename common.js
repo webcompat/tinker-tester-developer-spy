@@ -6,6 +6,8 @@
 
 /* global browser */
 
+window.UnsafeContentScriptEvalsBlockReports = true;
+
 window.ScriptOverrideHooks = {
   "ObserveXHRandFetch": {
     options: {onlyMethods: browser.i18n.getMessage("optionOnlyHTTPMethods"),
