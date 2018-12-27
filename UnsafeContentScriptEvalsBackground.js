@@ -42,7 +42,7 @@ const UnsafeContentScriptEvals = (function() {
 
     let CSP;
     let reportOnlyCSP;
-    let responseHeaders = [];
+    const responseHeaders = [];
     for (const header of details.responseHeaders) {
       const name = header.name.toLowerCase();
       const reportOnly = name === "content-security-policy-report-only";
@@ -63,7 +63,7 @@ const UnsafeContentScriptEvals = (function() {
             `script-src 'unsafe-eval' ${defaultSrcs}; default-src`);
         }
         if (effectiveDirective) {
-          let csp = {
+          const csp = {
             violatedDirective: effectiveDirective,
             effectiveDirective,
             disposition: reportOnly ? "report" : "enforce",

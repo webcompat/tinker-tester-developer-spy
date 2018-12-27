@@ -15,7 +15,7 @@ function BlockUnsafeEvals(url, CSP, reportOnlyCSP, AllowEvalsToken, sendCSPRepor
 
     function sendCSPReport(reportURI, report) {
       if (window.UnsafeContentScriptEvalsBlockReports ) {
-        console.log("Not sending CSP report", report);
+        console.warn("Not sending CSP report", report);
         return;
       }
       const headers = {
@@ -35,7 +35,7 @@ function BlockUnsafeEvals(url, CSP, reportOnlyCSP, AllowEvalsToken, sendCSPRepor
 
     const referrer = document.referrer;
 
-    function handleCSPForEval(CSP, reportURI) {
+    function handleCSPForEval(CSP, reportURI, reportOnly) {
       const init = Object.assign(CSP, {
         bubbles: true,
         composed: true,
@@ -79,7 +79,7 @@ function BlockUnsafeEvals(url, CSP, reportOnlyCSP, AllowEvalsToken, sendCSPRepor
     }
 
     function getReportURI(CSP) {
-      return CSP ? CSP.originalPolicy.match(/report-uri ([^;]*)/i) || [])[1] : undefined;
+      return CSP ? (CSP.originalPolicy.match(/report-uri ([^;]*)/i) || [])[1] : undefined;
     }
 
     // TODO: should we really prefer the report URI for report-only, or regular?
@@ -93,10 +93,11 @@ function BlockUnsafeEvals(url, CSP, reportOnlyCSP, AllowEvalsToken, sendCSPRepor
         desc.value = function() {
           const paramToCheck = name === "Function" ? arguments[arguments.length - 1] : arguments[0];
           if (typeof paramToCheck === "string" && !shouldAllowAnyway(paramToCheck)) {
-            if (!handleCSPForEval(CSP || reportOnlyCSP)) {
+            if (!handleCSPForEval(CSP || reportOnlyCSP, reportURI, !!CSP)) {
               return oldValue.apply(this, arguments);
             }
           }
+          return undefined;
         };
         Object.defineProperty(window, name, desc);
       }
