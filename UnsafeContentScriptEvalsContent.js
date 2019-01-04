@@ -1,6 +1,6 @@
-/* this source code form is subject to the terms of the mozilla public
- * license, v. 2.0. if a copy of the mpl was not distributed with this
- * file, you can obtain one at http://mozilla.org/mpl/2.0/. */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
@@ -92,18 +92,19 @@ function BlockUnsafeEvals(url, CSP, reportOnlyCSP, AllowEvalsToken, sendCSPRepor
         const oldValue = desc.value;
         desc.value = function() {
           const paramToCheck = name === "Function" ? arguments[arguments.length - 1] : arguments[0];
-          if (typeof paramToCheck === "string" && !shouldAllowAnyway(paramToCheck)) {
-            if (!handleCSPForEval(CSP || reportOnlyCSP, reportURI, !!CSP)) {
-              return oldValue.apply(this, arguments);
-            }
+          const needsCheck = name === "eval" || name === "Function" ||
+                             (typeof paramToCheck === "string" && !shouldAllowAnyway(paramToCheck));
+          if (needsCheck && !handleCSPForEval(CSP || reportOnlyCSP, reportURI, !!CSP)) {
+            return undefined;
           }
-          return undefined;
+          return oldValue.apply(this, arguments);
         };
         Object.defineProperty(window, name, desc);
       }
     }
   }
 
+  // eslint-disable-next-line no-eval
   window.eval(`(${pageScript})(${JSON.stringify(CSP)},
                                ${JSON.stringify(reportOnlyCSP)},
                                ${JSON.stringify(AllowEvalsToken)});`);
