@@ -44,8 +44,7 @@ const setContentScript = (function() {
 
     const scripts = [{file: "common.js"},
                      {code: `window.Config = ${JSON.stringify(config)};`},
-                     {file: "content.js"},
-                     {file: "webp/content.js"}];
+                     {file: "content.js"}];
 
     currentContentScript = await browser.contentScripts.register({
       js: scripts,

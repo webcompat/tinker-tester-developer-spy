@@ -30,7 +30,6 @@
       "common.js",
       "UnsafeContentScriptEvalsBackground.js",
       "background_utils.js",
-      "webp/background.js",
       "background.js"
     ]
   },
@@ -40,9 +39,5 @@
     "default_title": "__MSG_addonName__",
     "default_popup": "popup/popup.html"
   },
-  "devtools_page": "devtools/devtools.html",
-  "web_accessible_resources": [
-    "webp/webp_wasm.js",
-    "webp/webp_wasm.wasm"
-  ]
+  "devtools_page": "devtools/devtools.html"
 }

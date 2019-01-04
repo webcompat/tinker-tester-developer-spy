@@ -1677,7 +1677,6 @@ function pageScript(Config, Messages) {
   addHook("MediaElements", SimpleHookList);
   addHook("Scheduling", SimpleHookList);
   addHook("ShadowDOM", SimpleHookList);
-  addHook("WebP", IgnoredBackgroundScriptHook);
   addHook("CORSBypass", IgnoredBackgroundScriptHook);
   addHook("OverrideRequestHeaders", IgnoredBackgroundScriptHook);
   addHook("OverrideNetworkRequests", IgnoredBackgroundScriptHook);
@@ -1772,9 +1771,6 @@ function pageScript(Config, Messages) {
   // delegate any changes to the inner window's script using a message port
   browser.runtime.onMessage.addListener(
     message => {
-      if (message.decodeWebP) { // handled in webp/content.js
-        return;
-      }
       port.postMessage(JSON.stringify(message));
     }
   );

@@ -124,9 +124,6 @@ window.ScriptOverrideHooks = {
           "navigator.productSub": "20030107",
           "navigator.vendor": "Google Inc.",
         },
-        "polyfills": [
-          "WebP",
-        ]
       },
       "uaChromeAndroidTablet": {
         "headers": {
@@ -145,9 +142,6 @@ window.ScriptOverrideHooks = {
           "navigator.productSub": "20030107",
           "navigator.vendor": "Google Inc.",
         },
-        "polyfills": [
-          "WebP",
-        ]
       },
       "uaChromeLinux": {
         "headers": {
@@ -164,9 +158,6 @@ window.ScriptOverrideHooks = {
           "navigator.productSub": "20030107",
           "navigator.vendor": "Google Inc.",
         },
-        "polyfills": [
-          "WebP",
-        ]
       },
       "uaChromeOSX": {
         "headers": {
@@ -183,9 +174,6 @@ window.ScriptOverrideHooks = {
           "navigator.productSub": "20030107",
           "navigator.vendor": "Google Inc.",
         },
-        "polyfills": [
-          "WebP",
-        ]
       },
       "uaChromeWindows": {
         "headers": {
@@ -202,9 +190,6 @@ window.ScriptOverrideHooks = {
           "navigator.productSub": "20030107",
           "navigator.vendor": "Google Inc.",
         },
-        "polyfills": [
-          "WebP",
-        ]
       },
       "uaEdge": {
         "headers": {
@@ -377,9 +362,6 @@ window.ScriptOverrideHooks = {
       heading: browser.i18n.getMessage("optionGeolocationHeading"),
       speed: browser.i18n.getMessage("optionGeolocationSpeed"),
     },
-  },
-  "WebP": {
-    type: "checkbox",
   },
   "DisableDebugger": {
     type: "checkbox",
