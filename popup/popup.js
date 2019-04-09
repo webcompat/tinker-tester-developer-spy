@@ -4,23 +4,256 @@
 
 "use strict";
 
-/* global browser, drillDownIntoDetails, goBackToList,
-          redraw, ScriptOverrideHooks, IsAndroid */
+/* global chrome, drillDownIntoDetails, goBackToList, redraw, IsAndroid,
+          UserAgentOverrider */
 
 const Messages = {
-  AvailableHooks: browser.i18n.getMessage("popupAvailableHooks"),
-  ApplyHook: browser.i18n.getMessage("popupApplyHook"),
-  UpdateHook: browser.i18n.getMessage("popupUpdateHook"),
-  DisableHook: browser.i18n.getMessage("popupDisableHook"),
-  UnsetHook: browser.i18n.getMessage("popupUnsetHook"),
-  Cancel: browser.i18n.getMessage("popupCancel"),
-  UnavailableForAboutPages: browser.i18n.getMessage("popupUnavailableForAboutPages"),
-  DoNothing: browser.i18n.getMessage("popupDoNothing"),
-  LogStackTrace: browser.i18n.getMessage("popupLogStackTrace"),
-  StartDebugger: browser.i18n.getMessage("popupStartDebugger"),
-  Hide: browser.i18n.getMessage("popupHide"),
-  Ignore: browser.i18n.getMessage("popupIgnore"),
+  AvailableHooks: chrome.i18n.getMessage("popupAvailableHooks"),
+  ApplyHook: chrome.i18n.getMessage("popupApplyHook"),
+  UpdateHook: chrome.i18n.getMessage("popupUpdateHook"),
+  DisableHook: chrome.i18n.getMessage("popupDisableHook"),
+  UnsetHook: chrome.i18n.getMessage("popupUnsetHook"),
+  Cancel: chrome.i18n.getMessage("popupCancel"),
+  UnavailableForAboutPages: chrome.i18n.getMessage("popupUnavailableForAboutPages"),
+  UnavailableBackground: chrome.i18n.getMessage("popupUnavailableBackground"),
+  DoNothing: chrome.i18n.getMessage("popupDoNothing"),
+  LogStackTrace: chrome.i18n.getMessage("popupLogStackTrace"),
+  StartDebugger: chrome.i18n.getMessage("popupStartDebugger"),
+  Hide: chrome.i18n.getMessage("popupHide"),
+  IgnoreSetter: chrome.i18n.getMessage("popupIgnoreSetter"),
+  IgnoreAndLogSetter: chrome.i18n.getMessage("popupIgnoreAndLogSetter"),
+  IgnoreCalls: chrome.i18n.getMessage("popupIgnoreCalls"),
+  IgnoreAndLogCalls: chrome.i18n.getMessage("popupIgnoreAndLogCalls"),
+  InaccessibleTab: chrome.i18n.getMessage("warnInaccessibleTab"),
+  SpoofHTTPHeaders: chrome.i18n.getMessage("spoofHTTPHeaders"),
+  SpoofScriptingEnvironment: chrome.i18n.getMessage("spoofScriptingEnvironment"),
+  SpoofOnlyUserAgentString: chrome.i18n.getMessage("spoofOnlyUserAgentString"),
 };
+
+const Options = {
+  "ObserveXHRandFetch": {
+    options: {onlyMethods: chrome.i18n.getMessage("optionOnlyHTTPMethods"),
+              onlyURLs: chrome.i18n.getMessage("optionOnlyURLs")},
+    callbacks: {onOpen: chrome.i18n.getMessage("callbackOnOpen"),
+                onSend: chrome.i18n.getMessage("callbackOnSend")},
+  },
+  "OverrideNetworkRequests": {
+    userValues: {
+      setting: chrome.i18n.getMessage("optionURLRegex"),
+      value: chrome.i18n.getMessage("optionURLRedirect"),
+      types: {
+        redirectURL: {label: chrome.i18n.getMessage("typeOverrideNetworkRequestRedirectURL")},
+        rawText: {label: chrome.i18n.getMessage("typeOverrideNetworkRequestRawText")},
+      },
+    },
+    note: chrome.i18n.getMessage("noteOverrideNetworkRequests"),
+  },
+  "OverrideRequestHeaders": {
+    userValues: {
+      setting: chrome.i18n.getMessage("optionHeaderName"),
+      value: chrome.i18n.getMessage("optionHeaderValue"),
+      types: {
+        alwaysSet: {label: chrome.i18n.getMessage("typeOverrideRequestHeaderAlwaysSet")},
+        onlyOverride: {label: chrome.i18n.getMessage("typeOverrideRequestHeaderOnlyOverride")},
+      },
+    },
+  },
+  "OverrideLanguages": {
+    options: {languages: chrome.i18n.getMessage("optionLanguages")},
+  },
+  "ElementCreation": {
+    options: {names: chrome.i18n.getMessage("optionElementNames")},
+    callbacks: {onCreated: chrome.i18n.getMessage("callbackOnCreated")},
+  },
+  "ElementDetection": {
+    options: {selector: chrome.i18n.getMessage("optionElementSelector")},
+    callbacks: {onDetected: chrome.i18n.getMessage("callbackOnDetected"),
+                onLost: chrome.i18n.getMessage("callbackOnLost")},
+  },
+  "EventListener": {
+    options: {types: chrome.i18n.getMessage("optionEventTypes"),
+              matches: chrome.i18n.getMessage("optionOnlyIfTargetMatches")},
+    callbacks: {
+      onAdded: {
+        allowIgnore: true,
+        label: chrome.i18n.getMessage("callbackOnListenerAdded"),
+      },
+      onRemoved: {
+        allowIgnore: true,
+        label: chrome.i18n.getMessage("callbackOnListenerRemoved"),
+      },
+      onEvent: {
+        allowIgnore: true,
+        label: chrome.i18n.getMessage("callbackOnEventFired"),
+      },
+    },
+  },
+  "EventFeatures": {
+    properties: [
+      "window.event",
+      "Event.prototype.srcElement",
+      "Event.prototype.cancelBubble",
+      "Event.prototype.deepPath",
+      "Event.prototype.returnValue",
+      "Document.prototype.activeElement",
+    ],
+    methods: [
+      "HTMLElement.prototype.blur",
+      "HTMLElement.prototype.focus",
+      "EventTarget.prototype.dispatchEvent",
+      "Event.prototype.composedPath",
+      "Event.prototype.preventDefault",
+      "Event.prototype.stopPropagation",
+      "Event.prototype.stopImmediatePropagation",
+    ],
+  },
+  "StyleProperties": {
+    options: {properties: chrome.i18n.getMessage("optionStylePropertiesToMonitor"),
+              selector: chrome.i18n.getMessage("optionOnlyIfElementMatches"),
+              onlyValues: chrome.i18n.getMessage("optionOnlyIfValueMatches")},
+    callbacks: {onGet: chrome.i18n.getMessage("callbackOnGet"),
+                onSet: chrome.i18n.getMessage("callbackOnSet")},
+  },
+  "DetectUAChecks": {
+    properties: [
+      "navigator.userAgent",
+      "navigator.appVersion",
+      "navigator.vendor",
+      "navigator.platform",
+      "navigator.oscpu",
+      "navigator.buildID",
+      "navigator.language",
+      "navigator.languages",
+      "window.components",
+    ]
+  },
+  "UserAgentOverrides": {
+    useragents: UserAgentOverrider.getUAList(),
+    flags: {
+      spoofHTTPHeaders: Messages.SpoofHTTPHeaders,
+      spoofScriptingEnvironment: Messages.SpoofScriptingEnvironment,
+      spoofOnlyUserAgentString: Messages.SpoofOnlyUserAgentString,
+    },
+  },
+  "Scrolling": {
+    properties: [
+      "WheelEvent.prototype.deltaY",
+      "WheelEvent.prototype.deltaX",
+      "window.pageXOffset",
+      "window.pageYOffset",
+      "document.documentElement.scrollLeft",
+      "document.documentElement.scrollTop",
+      "document.body.scrollLeft",
+      "document.body.scrollTop",
+      "Document.prototype.scrollingElement",
+      "Element.prototype.scrollLeft",
+      "Element.prototype.scrollLeftMin",
+      "Element.prototype.scrollLeftMax",
+      "Element.prototype.scrollTop",
+      "Element.prototype.scrollTopMin",
+      "Element.prototype.scrollTopMax",
+      "Element.prototype.scrollWidth",
+      "Element.prototype.scrollHeight",
+    ],
+    methods: [
+      "window.scroll",
+      "window.scrollBy",
+      "window.scrollTo",
+      "Element.prototype.scrollIntoView",
+      "Element.prototype.scroll",
+      "Element.prototype.scrollTo",
+      "Element.prototype.scrollBy",
+      "Element.prototype.scrollByNoFlush",
+    ]
+  },
+  "DocumentWrite": {
+    methods: [
+      "document.write",
+      "document.writeln",
+    ]
+  },
+  "History": {
+    properties: [
+      "history.length",
+      "history.state",
+      "history.scrollRestoration",
+    ],
+    methods: [
+      "history.back",
+      "history.forward",
+      "history.go",
+      "history.pushState",
+      "history.replaceState",
+    ]
+  },
+  "InputsAndLinks": {
+    properties: [
+      "HTMLInputElement.prototype.checked",
+      "HTMLAnchorElement.prototype.href",
+    ],
+    methods: [
+      "HTMLElement.prototype.click",
+      "HTMLInputElement.prototype.setSelectionRange",
+    ]
+  },
+  "MediaElements": {
+    methods: [
+      "HTMLVideoElement.prototype.pause",
+      "HTMLVideoElement.prototype.play",
+      "HTMLAudioElement.prototype.pause",
+      "HTMLAudioElement.prototype.play",
+      "HTMLElement.prototype.requestFullscreen",
+      "HTMLElement.prototype.exitFullscreen",
+      "document.fullscreen",
+      "document.fullscreenElement",
+      "window.Audio",
+    ],
+    properties: [
+      "HTMLAudioElement.prototype.src",
+      "HTMLVideoElement.prototype.src",
+    ]
+  },
+  "Scheduling": {
+    methods: [
+      "window.setTimeout",
+      "window.setInterval",
+      "window.requestAnimationFrame",
+      "window.setImmediate",
+      "window.clearTimeout",
+      "window.clearInterval",
+      "window.clearImmediate",
+    ]
+  },
+  "ShadowDOM": {
+    methods: [
+      "Element.prototype.createShadowRoot",
+      "Element.prototype.attachShadow",
+      "Element.prototype.detachShadow",
+    ]
+  },
+  "Geolocation": {
+    options: {
+      latitude: chrome.i18n.getMessage("optionGeolocationLatitude"),
+      longitude: chrome.i18n.getMessage("optionGeolocationLongitude"),
+      accuracy: chrome.i18n.getMessage("optionGeolocationAccuracy"),
+      altitude: chrome.i18n.getMessage("optionGeolocationAltitude"),
+      altitudeAccuracy: chrome.i18n.getMessage("optionGeolocationAltitudeAccuracy"),
+      heading: chrome.i18n.getMessage("optionGeolocationHeading"),
+      speed: chrome.i18n.getMessage("optionGeolocationSpeed"),
+    },
+  },
+  "FunctionBind": {
+    type: "checkbox",
+  },
+  "CORSBypass": {
+    type: "checkbox",
+  },
+};
+if (typeof browser !== "undefined") {
+  Options.ObserveXHRandFetch.flags = {
+    syncXHRPolyfix: chrome.i18n.getMessage("flagSyncXHRPolyfix"),
+  };
+}
 
 let ActiveTabConfig = {};
 
@@ -30,7 +263,7 @@ const portToBGScript = (function() {
   const panelType = location.hash.substr(1) || "pageAction";
 
   function connect() {
-    port = browser.runtime.connect({name: `${panelType}Port`});
+    port = chrome.runtime.connect({name: `${panelType}Port`});
     port.onMessage.addListener(onMessageFromBGScript);
     port.onDisconnect.addListener(e => {
       port = undefined;
@@ -52,36 +285,38 @@ const portToBGScript = (function() {
 function applyChanges(changes) {
   if (Object.keys(changes).length) {
     portToBGScript.send(
-      {tabConfigChanges: changes},
+      {tabConfigChanges: changes,
+       tabId: ActiveTabConfig.tabId},
       newActiveTabConfig => {
         ActiveTabConfig = newActiveTabConfig;
-        if (!IsAndroid) {
-          // this.close();
-        }
       }
-    );
-  } else if (!IsAndroid) {
-    // this.close();
+    ).catch(() => {});
   }
 }
 
 function onMessageFromBGScript(message) {
-  if (message === "activeTabChanged") {
-    onActiveTabChanged();
-  } else if (message.tabConfig !== undefined) {
-    ActiveTabConfig = message.tabConfig;
+  const {tabConfig, activeTabChanged} = message;
+  if (activeTabChanged && activeTabChanged === ActiveTabConfig.tabId) {
+    // Devtools panels need to be redrawn when the user changes tabs.
+    getTabConfigAndRedraw();
+  } else if (tabConfig && (!ActiveTabConfig.tabId ||
+             ActiveTabConfig.tabId === tabConfig.tabId)) {
+    // We are receiving the config for the tab we're intended for.
+    ActiveTabConfig = tabConfig;
     redraw(ActiveTabConfig);
   }
 }
 
+function getTabConfigAndRedraw() {
+  portToBGScript.send("getTabConfig").catch(() => {
+    redrawList(undefined);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  onActiveTabChanged();
+  getTabConfigAndRedraw();
   document.body.addEventListener("click", handleClick);
 });
-
-function onActiveTabChanged() {
-  portToBGScript.send("getActiveTabConfig");
-}
 
 function handleClick(e) {
   let option;
@@ -140,10 +375,9 @@ function handleClick(e) {
               info.enabled = true;
               info[sel.name] = sel.value;
               break;
-            case "overrides":
+            case "useragents":
               info.enabled = true;
               info.selected = sel.value;
-              info.overrides = ScriptOverrideHooks.UserAgentOverrides.overrides[sel.value];
               break;
             case "method":
               info.enabled = true;
@@ -179,6 +413,9 @@ function handleClick(e) {
 }
 
 function redrawList(tabConfig = {}) {
+  const err = document.querySelector(".error");
+  err.innerText = tabConfig.accessible ? "" : Messages.InaccessibleTab;
+
   const list = document.querySelector(".list");
 
   const frag = document.createDocumentFragment();
@@ -187,10 +424,12 @@ function redrawList(tabConfig = {}) {
   h.appendChild(document.createTextNode(Messages.AvailableHooks));
   frag.appendChild(h);
 
-  if (tabConfig === false) {
+  if (!tabConfig) {
     list.innerHTML = "";
     const i = document.createElement("i");
-    i.appendChild(document.createTextNode(Messages.UnavailableForAboutPages));
+    const msg = tabConfig === false ? Messages.UnavailableForAboutPages :
+                                      Messages.UnavailableBackground;
+    i.appendChild(document.createTextNode(msg));
     frag.appendChild(i);
     list.appendChild(frag);
     return;
@@ -200,7 +439,7 @@ function redrawList(tabConfig = {}) {
   frag.appendChild(ol);
 
   tabConfig = tabConfig || {};
-  for (const [name, hook] of Object.entries(ScriptOverrideHooks)) {
+  for (const [name, hook] of Object.entries(Options)) {
     if (hook.type === "checkbox") {
       maybeAddCheckbox(name, ol, tabConfig);
       continue;
@@ -211,7 +450,7 @@ function redrawList(tabConfig = {}) {
     ol.appendChild(li);
 
     const label = document.createElement("span");
-    const msg = browser.i18n.getMessage(`hookLabel${name}`);
+    const msg = chrome.i18n.getMessage(`hookLabel${name}`);
     label.appendChild(document.createTextNode(msg));
     li.appendChild(label);
 
@@ -226,7 +465,7 @@ function redrawList(tabConfig = {}) {
 }
 
 function maybeAddCheckbox(hookName, ol, tabConfig) {
-  const hook = ScriptOverrideHooks[hookName];
+  const hook = Options[hookName];
   if (!hook) {
     return;
   }
@@ -253,7 +492,7 @@ function maybeAddCheckbox(hookName, ol, tabConfig) {
   li.appendChild(cb);
   const label = document.createElement("label");
   label.setAttribute("for", hookName);
-  const msg = browser.i18n.getMessage(`hookLabel${hookName}`);
+  const msg = chrome.i18n.getMessage(`hookLabel${hookName}`);
   label.appendChild(document.createTextNode(msg));
   li.appendChild(label);
 }
@@ -310,11 +549,19 @@ function addSelectActionCell(name, tr, initialValue, addIgnoreOption = false,
 
   if (addIgnoreOption) {
     opt = document.createElement("option");
+    opt.setAttribute("value", "ignore and log");
+    if (initialValue === "ignore and log") {
+      opt.setAttribute("selected", true);
+    }
+    opt.appendChild(document.createTextNode(addIgnoreOption === "set" ? Messages.IgnoreAndLogSetter : Messages.IgnoreAndLogCalls));
+    sel.appendChild(opt);
+
+    opt = document.createElement("option");
     opt.setAttribute("value", "ignore");
     if (initialValue === "ignore") {
       opt.setAttribute("selected", true);
     }
-    opt.appendChild(document.createTextNode(Messages.Ignore));
+    opt.appendChild(document.createTextNode(addIgnoreOption === "set" ? Messages.IgnoreSetter : Messages.IgnoreCalls));
     sel.appendChild(opt);
   }
 
@@ -401,7 +648,7 @@ function addUserValueSelector(table, definition, uvType, uvName, uvValue) {
 }
 
 function redrawDetails(option) {
-  const hook = ScriptOverrideHooks[option];
+  const hook = Options[option];
 
   const optConfig = ActiveTabConfig[option] || {};
   const isActive = !!optConfig.enabled;
@@ -412,7 +659,7 @@ function redrawDetails(option) {
   const frag = document.createDocumentFragment();
 
   const label = document.createElement("p");
-  const msg = browser.i18n.getMessage(`hookLabel${option}`);
+  const msg = chrome.i18n.getMessage(`hookLabel${option}`);
   label.appendChild(document.createTextNode(msg));
   frag.appendChild(label);
 
@@ -441,21 +688,28 @@ function redrawDetails(option) {
     frag.appendChild(inp);
   }
 
-  const overrides = Object.keys(hook.overrides || {});
-  if (overrides.length) {
+  const useragents = hook.useragents || [];
+  if (useragents.length) {
     const initialValue = optConfig.selected;
     const sel = document.createElement("select");
-    sel.setAttribute("data-type", "overrides");
+    sel.setAttribute("data-type", "useragents");
     frag.appendChild(sel);
-    for (const name of overrides) {
+    for (const name of useragents) {
       const opt = document.createElement("option");
       opt.setAttribute("value", name);
       if (initialValue === name) {
         opt.setAttribute("selected", true);
       }
-      const msg = browser.i18n.getMessage(name);
+      const msg = chrome.i18n.getMessage(name);
       opt.appendChild(document.createTextNode(msg));
       sel.appendChild(opt);
+    }
+    if (!optConfig.flags) {
+      optConfig.flags = {
+        spoofHTTPHeaders: true,
+        spoofScriptingEnvironment: true,
+        spoofOnlyUserAgentString: false,
+      };
     }
   }
 
@@ -495,7 +749,7 @@ function redrawDetails(option) {
       td.appendChild(document.createTextNode(name + "()"));
 
       const config = (optConfig.methods || {})[name];
-      const sel = addSelectActionCell(name, tr, config, true, true);
+      const sel = addSelectActionCell(name, tr, config, "call", true);
       sel.setAttribute("data-type", "method");
     }
     for (const name of props) {
@@ -507,7 +761,7 @@ function redrawDetails(option) {
       td.appendChild(document.createTextNode(name));
 
       const config = (optConfig.properties || {})[name];
-      const sel = addSelectActionCell(name, tr, config, false, true);
+      const sel = addSelectActionCell(name, tr, config, "set", true);
       sel.setAttribute("data-type", "property");
     }
   }
@@ -555,4 +809,24 @@ function addFlags(flags, frag, optConfig) {
     label.appendChild(document.createTextNode(msg));
     div.appendChild(label);
   }
+}
+
+// Chrome does not remove devtools panels when the addon has been
+// removed/disabled/etc, which leaves a TTDS panel completely
+// useless. We need to inform the user that they must re-open the
+// devtools in that case, so they don't wonder why TTDS isn't working.
+if (typeof browser === "undefined" && location.href.endsWith("devtoolsPanel")) {
+  const heartbeatId = setInterval(function() {
+    chrome.runtime.sendMessage("ping", function() {
+      if (chrome.runtime.lastError) {
+        clearInterval(heartbeatId);
+        const msg = chrome.i18n.getMessage("warnDevtoolsPanelNeedsToBeReopened");
+        document.body.innerHTML = "";
+        const h = document.createElement("h1");
+        h.className = "error";
+        h.innerText = msg;
+        document.body.appendChild(h);
+      }
+    });
+  }, 1000);
 }

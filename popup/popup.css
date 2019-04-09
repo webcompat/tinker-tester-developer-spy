@@ -199,8 +199,17 @@ html li:nth-child(odd) {
   margin-right: 0.5em;
 }
 
+.error,
 .details>blockquote {
   color: red;
   font-weight: bold;
   font-style: italic;
+}
+
+.error {
+  padding: 1em;
+}
+
+h1.error:empty {
+  display: none;
 }

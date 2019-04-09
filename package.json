@@ -1,6 +1,6 @@
 {
   "name": "tinker-tester-developer-spy",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "author": "Thomas Wisniewski",
   "bugs": {
     "url": "https://github.com/webcompat/tinker-tester-developer-spy/issues"
@@ -32,5 +32,8 @@
     "lint:js": "DEBUG=eslint:cli-engine eslint . popup devtools --ext=js,jsm,json",
     "pretest": "npm run lint",
     "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "dependencies": {
+    "npm": "^6.9.0"
   }
 }

@@ -7,7 +7,10 @@
   },
 
   "apiAnnounceKey": {
-    "message": "TinkerTesterDeveloperSpy is available as window['KEY']"
+    "message": "Tinker Tester Developer Spy is available as window['KEY']"
+  },
+  "apiUpgrading": {
+    "message": "Upgrading previous Tinker Tester Developer Spy instance"
   },
 
   "bgBypassingCORSHeader": {
@@ -43,6 +46,9 @@
   },
   "callbackOnListenerRemoved": {
     "message": "On Listener Removed"
+  },
+  "callbackOnOpen": {
+    "message": "On Open"
   },
   "callbackOnSend": {
     "message": "On Send"
@@ -121,9 +127,21 @@
   "hookLabelUserAgentOverrides": {
     "message": "Spoof User Agent"
   },
+  "spoofHTTPHeaders": {
+    "message": "Spoof HTTP Headers"
+  },
+  "spoofScriptingEnvironment": {
+    "message": "Spoof the scripting environment"
+  },
+  "spoofOnlyUserAgentString": {
+    "message": "Spoof only the User-Agent string"
+  },
 
   "logBoundFunctionCalled": {
     "message": "bound function called"
+  },
+  "logIgnoringCallWithArgs": {
+    "message": "ignoring call with args"
   },
   "logCalledWithArgs": {
     "message": "called with args"
@@ -140,6 +158,9 @@
   "logEventFiredOn": {
     "message": "event fired on"
   },
+  "logIgnoringGetterAccess": {
+    "message": "ignoring attempt to get"
+  },
   "logGetterAccessed": {
     "message": "accessed"
   },
@@ -155,6 +176,12 @@
   "logIgnoringListenerRemovedFrom": {
     "message": "listener removal being ignored from"
   },
+  "logIgnoringRequestOpen": {
+    "message": "XHR/fetch open being ignored"
+  },
+  "logIgnoringRequestSend": {
+    "message": "XHR/fetch send being ignored"
+  },
   "logInvalidFunctionBind": {
     "message": "Function.prototype.bind requires a callable object"
   },
@@ -163,6 +190,15 @@
   },
   "logListenerRemovedFrom": {
     "message": "listener removal attempted from"
+  },
+  "logRequestOpen": {
+    "message": "XHR/fetch being opened"
+  },
+  "logRequestSend": {
+    "message": "XHR/fetch being sent"
+  },
+  "logIgnoringSetterCall": {
+    "message": "ignoring attempt to set to"
   },
   "logSetterCalled": {
     "message": "set to"
@@ -254,8 +290,17 @@
   "popupHide": {
     "message": "Hide"
   },
-  "popupIgnore": {
-    "message": "Ignore"
+  "popupIgnoreCalls": {
+    "message": "Ignore calls"
+  },
+  "popupIgnoreSetter": {
+    "message": "Ignore sets"
+  },
+  "popupIgnoreAndLogCalls": {
+    "message": "Ignore (but log) calls"
+  },
+  "popupIgnoreAndLogSetter": {
+    "message": "Ignore (but log) sets"
   },
   "popupLogStackTrace": {
     "message": "Log stack trace"
@@ -265,6 +310,9 @@
   },
   "popupUnavailableForAboutPages": {
     "message": "Unavailable for about: pages"
+  },
+  "popupUnavailableBackground": {
+    "message": "Cannot connect to addon"
   },
   "popupUnsetHook": {
     "message": "unset"
@@ -287,30 +335,49 @@
   },
 
   "uaChromeAndroidPhone": {
-    "message": "Chrome 68 (Android Phone)"
+    "message": "Chrome 73 (Android Phone)"
   },
   "uaChromeAndroidTablet": {
-    "message": "Chrome 68 (Android Tablet)"
+    "message": "Chrome 73 (Android Tablet)"
   },
   "uaChromeLinux": {
-    "message": "Chrome 68 (Linux)"
+    "message": "Chrome 73 (Linux)"
   },
   "uaChromeOSX": {
-    "message": "Chrome 68 (OSX)"
+    "message": "Chrome 73 (OSX)"
   },
   "uaChromeWindows": {
-    "message": "Chrome 68 (Windows)"
+    "message": "Chrome 73 (Windows)"
   },
   "uaEdge": {
-    "message": "Edge 42 (Windows)"
+    "message": "Edge 44 (Windows)"
   },
   "uaFirefoxAndroidPhone": {
-    "message": "Firefox 61 (Android Phone)"
+    "message": "Firefox 66.0.2 (Android Phone)"
   },
   "uaFirefoxAndroidTablet": {
-    "message": "Firefox 61 (Android Tablet)"
+    "message": "Firefox 66.0.2 (Android Tablet)"
+  },
+  "uaFirefoxLinux": {
+    "message": "Firefox 66.0.2 (Linux)"
+  },
+  "uaFirefoxOSX": {
+    "message": "Firefox 66.0.2 (OSX)"
+  },
+  "uaFirefoxWindows": {
+    "message": "Firefox 66.0.2 (Windows)"
   },
   "uaSafariOSX": {
-    "message": "Safari 11.1.2 (OSX)"
+    "message": "Safari 12.1 (OSX)"
+  },
+
+  "warnEventListenerCannotMonitor": {
+    "message": "Tinker Tester Developer Spy: Cannot monitor %0% events"
+  },
+  "warnDevtoolsPanelNeedsToBeReopened": {
+    "message": "Lost connection with the addon. Please re-open the devtools to reconnect."
+  },
+  "warnInaccessibleTab": {
+    "message": "The current page in this tab cannot be manipulated."
   }
 }

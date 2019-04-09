@@ -4,11 +4,10 @@
 
 "use strict";
 
-/* global browser */
+// global chrome
 
-browser.devtools.panels.create(
-  browser.i18n.getMessage("addonName"),
+chrome.devtools.panels.create(
+  chrome.i18n.getMessage("addonName"),
   "../icons/active.svg",
   "../popup/popup.html#devtoolsPanel"
 );
-
